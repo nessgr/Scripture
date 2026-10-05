@@ -1,0 +1,24 @@
+### Gradle ###
+.gradle/
+build/
+local.properties
+
+### Kotlin ###
+.kotlin/
+
+### IntelliJ IDEA ###
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+*.iml
+.idea/modules.xml
+.idea/workspace.xml
+.idea/gradle.xml
+.idea/artifacts/
+
+### Crash dumps / logs ###
+*.hprof
+build_log.txt
+
+### OS ###
+.DS_Store
