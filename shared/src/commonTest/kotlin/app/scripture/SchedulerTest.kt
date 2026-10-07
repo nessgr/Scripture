@@ -40,7 +40,8 @@ class SchedulerTest {
 
         val after2 = nextProgress(after1, Grade.EASY, today + 3)
         assertEquals(10, after2.intervalDays)
-        assertEquals(2.65, after2.easiness, absoluteTolerance = 1e-9)
+        // Ease is adjusted on every grading (SM-2 semantics): 2.5 + 0.15 + 0.15.
+        assertEquals(2.8, after2.easiness, absoluteTolerance = 1e-9)
     }
 
     @Test

@@ -41,7 +41,7 @@ To restyle the whole app: edit `Theme.kt` / `Tokens.kt` and nothing else.
 
 Fonts: [Lora](https://fonts.google.com/specimen/Lora) (scripture, serif) and
 [Inter](https://fonts.google.com/specimen/Inter) (UI, sans), both SIL OFL —
-licenses in [`licenses/`](licenses/).
+licenses in [`licenses/`](licenses/)
 
 ## Spaced repetition semantics
 

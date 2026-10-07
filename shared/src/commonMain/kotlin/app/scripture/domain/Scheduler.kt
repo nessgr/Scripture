@@ -75,12 +75,13 @@ fun isDue(progress: ReviewProgress, todayEpochDay: Long): Boolean =
 
 /**
  * Today's review queue: due verses first (oldest due date first),
- * capped so a session stays focused.
+ * capped so a session stays focused. A verse never reviewed counts as
+ * due *today*, so it comes after anything already overdue.
  */
 fun buildReviewQueue(verses: List<Verse>, todayEpochDay: Long, limit: Int = 20): List<Verse> =
     verses
         .filter { isDue(it.progress, todayEpochDay) }
         .sortedWith(
-            compareBy({ it.progress.dueEpochDay ?: Long.MIN_VALUE }, { it.createdEpochDay }),
+            compareBy({ it.progress.dueEpochDay ?: todayEpochDay }, { it.createdEpochDay }),
         )
         .take(limit)
