@@ -44,5 +44,10 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+        androidMain.dependencies {
+            // rememberLauncherForActivityResult + OpenDocument for the
+            // Android import file picker; commonMain stays platform-agnostic.
+            implementation(libs.androidx.activity.compose)
+        }
     }
 }

@@ -43,6 +43,7 @@ fun LibraryScreen(
     onAddVerse: () -> Unit,
     onStartReview: () -> Unit,
     onOpenVerse: (String) -> Unit,
+    onImport: () -> Unit,
 ) {
     val verses by store.verses.collectAsState()
     val today = store.todayEpochDay()
@@ -64,6 +65,10 @@ fun LibraryScreen(
             )
             Spacer(Modifier.weight(1f))
             PrimaryButton("Add your first verse", onClick = onAddVerse, modifier = Modifier.fillMaxWidth())
+            OutlinedButton(
+                onClick = onImport,
+                modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
+            ) { Text("Import from a file") }
         } else {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -78,7 +83,10 @@ fun LibraryScreen(
                     style = MaterialTheme.label,
                     color = MaterialTheme.colorScheme.primary,
                 )
-                OutlinedButton(onClick = onAddVerse) { Text("Add verse") }
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    OutlinedButton(onClick = onImport) { Text("Import") }
+                    OutlinedButton(onClick = onAddVerse) { Text("Add verse") }
+                }
             }
 
             if (dueCount > 0 && !filter.isActive) {

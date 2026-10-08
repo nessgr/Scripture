@@ -11,6 +11,7 @@ import app.scripture.data.defaultDataStorage
 import app.scripture.ui.designsystem.ScriptureTheme
 import app.scripture.ui.screens.AddVerseScreen
 import app.scripture.ui.screens.EditVerseScreen
+import app.scripture.ui.screens.ImportScreen
 import app.scripture.ui.screens.LibraryScreen
 import app.scripture.ui.screens.ReviewScreen
 import app.scripture.ui.screens.VerseDetailScreen
@@ -24,6 +25,7 @@ import app.scripture.ui.screens.VerseDetailScreen
 sealed class Screen {
     data object Library : Screen()
     data object AddVerse : Screen()
+    data object Import : Screen()
     data class VerseDetail(val verseId: String) : Screen()
     data class EditVerse(val verseId: String) : Screen()
     data object Review : Screen()
@@ -49,8 +51,13 @@ fun App() {
                     screen = Screen.Review
                 },
                 onOpenVerse = { verseId -> screen = Screen.VerseDetail(verseId) },
+                onImport = { screen = Screen.Import },
             )
             Screen.AddVerse -> AddVerseScreen(
+                store = store,
+                onDone = { screen = Screen.Library },
+            )
+            Screen.Import -> ImportScreen(
                 store = store,
                 onDone = { screen = Screen.Library },
             )

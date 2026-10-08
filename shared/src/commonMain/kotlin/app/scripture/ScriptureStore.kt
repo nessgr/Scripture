@@ -3,12 +3,15 @@ package app.scripture
 import app.scripture.data.ScriptureData
 import app.scripture.data.VerseRepository
 import app.scripture.domain.Grade
+import app.scripture.domain.ImportOutcome
 import app.scripture.domain.ReviewMode
 import app.scripture.domain.ReviewRecord
 import app.scripture.domain.Verse
 import app.scripture.domain.buildReviewQueue
 import app.scripture.domain.edited
 import app.scripture.domain.nextProgress
+import app.scripture.domain.parseImportText
+import app.scripture.domain.planImport
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -72,6 +75,28 @@ class ScriptureStore(private val repository: VerseRepository) {
             createdEpochDay = todayEpochDay(),
         ).edited(reference, text, tags, translation)
         updateVerses { it + verse }
+    }
+
+    /**
+     * Imports verses from simple-JSON text (see domain/VerseImport.kt for the
+     * format). Forgiving: rows that duplicate the library or lack
+     * reference/text are skipped and reported in the outcome — one bad row
+     * never aborts the batch.
+     */
+    fun importVerses(text: String): ImportOutcome {
+        val parsed = parseImportText(text) ?: return ImportOutcome.NotJson
+        val plan = planImport(
+            existing = _verses.value,
+            parsed = parsed.verses,
+            todayEpochDay = todayEpochDay(),
+            newId = { Uuid.random().toString() },
+        )
+        if (plan.versesToAdd.isNotEmpty()) updateVerses { it + plan.versesToAdd }
+        return ImportOutcome.Imported(
+            addedCount = plan.versesToAdd.size,
+            duplicateCount = plan.duplicateCount,
+            invalidCount = parsed.invalidCount,
+        )
     }
 
     /**
