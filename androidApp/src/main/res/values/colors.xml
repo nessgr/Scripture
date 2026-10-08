@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Launcher icon palette — mirrors Theme.kt's accent/background. -->
+    <color name="icon_background">#4A6B5A</color>
+</resources>

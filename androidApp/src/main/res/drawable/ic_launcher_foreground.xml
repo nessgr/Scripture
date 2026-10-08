@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Open book with a cross rising from its spine, drawn as one flat
+  silhouette in warm cream. Canvas is the adaptive-icon 108dp layer;
+  the glyph stays inside the 66dp safe-zone circle. Colors are fixed
+  (not tinted) — the background it sits on is the sage accent.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group android:scaleX="0.9" android:scaleY="0.9" android:pivotX="54" android:pivotY="54">
+        <path
+            android:fillColor="#FAF9F6"
+            android:pathData="M50,33 h8 v8 h9 v8 h-9 v4 h-8 v-4 h-9 v-8 h9 z" />
+        <path
+            android:fillColor="#FAF9F6"
+            android:pathData="M32,51 L54,57 L76,51 L76,75 L54,69 L32,75 Z" />
+    </group>
+</vector>

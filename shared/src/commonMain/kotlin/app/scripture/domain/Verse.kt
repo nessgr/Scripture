@@ -18,3 +18,20 @@ data class Verse(
     val createdEpochDay: Long,
     val progress: ReviewProgress = ReviewProgress(),
 )
+
+/**
+ * Copy with edited content. Id, createdEpochDay, and review progress are
+ * preserved — fixing a typo must never reset how well the verse is known.
+ * Also the one place content is normalized, so add and edit can't drift.
+ */
+fun Verse.edited(
+    reference: String,
+    text: String,
+    tags: List<String>,
+    translation: String?,
+): Verse = copy(
+    reference = reference.trim(),
+    text = text.trim(),
+    tags = tags.map { it.trim() }.filter { it.isNotEmpty() },
+    translation = translation?.trim()?.ifEmpty { null },
+)

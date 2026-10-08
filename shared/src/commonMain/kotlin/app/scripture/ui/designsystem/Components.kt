@@ -101,28 +101,54 @@ fun PrimaryButton(
     }
 }
 
-/** Small outlined pill for a verse tag. */
+/**
+ * Small pill for a verse tag. Doubles as the library's tag-filter control:
+ * pass [onClick] to make it tappable, [selected] for the filled "filtering by
+ * this tag" look. Hand-styled to keep the pill shape — Material3's FilterChip
+ * would clash with the rest of the design.
+ */
 @Composable
-fun TagChip(label: String) {
+fun TagChip(
+    label: String,
+    selected: Boolean = false,
+    onClick: (() -> Unit)? = null,
+) {
+    val shape = RoundedCornerShape(50)
     Text(
         text = label,
         style = MaterialTheme.label,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50))
+        color = if (selected) MaterialTheme.colorScheme.onPrimary
+                else MaterialTheme.colorScheme.primary,
+        modifier = (
+            if (selected) {
+                Modifier
+                    .clip(shape)
+                    .background(MaterialTheme.colorScheme.primary)
+            } else {
+                Modifier
+                    .clip(shape)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, shape)
+            }
+            ).let { base ->
+                if (onClick != null) base.clickable(onClick = onClick) else base
+            }
             .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
     )
 }
 
-/** A verse in the library list: reference, serif preview, tags. */
+/**
+ * A verse in the library list: reference, serif preview, tags. Give it an
+ * [onClick] to make the whole card open the verse detail screen — the
+ * clickable Card overload is the same one ClickableCard uses, so ripple
+ * and semantics stay consistent across the app.
+ */
 @Composable
-fun VerseCard(verse: Verse, modifier: Modifier = Modifier) {
-    Card(
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = modifier.fillMaxWidth(),
-    ) {
+fun VerseCard(
+    verse: Verse,
+    onClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
+    val content: @Composable ColumnScope.() -> Unit = {
         Column(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             modifier = Modifier.padding(Spacing.lg),
@@ -145,6 +171,22 @@ fun VerseCard(verse: Verse, modifier: Modifier = Modifier) {
                 }
             }
         }
+    }
+    if (onClick != null) {
+        Card(
+            onClick = onClick,
+            shape = MaterialTheme.shapes.medium,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            modifier = modifier.fillMaxWidth(),
+            content = content,
+        )
+    } else {
+        Card(
+            shape = MaterialTheme.shapes.medium,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            modifier = modifier.fillMaxWidth(),
+            content = content,
+        )
     }
 }
 
