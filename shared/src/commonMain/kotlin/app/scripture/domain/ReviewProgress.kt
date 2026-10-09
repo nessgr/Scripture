@@ -18,4 +18,4 @@ data class ReviewProgress(
 enum class Grade { AGAIN, HARD, GOOD, EASY }
 
 /** Which activity produced a review. */
-enum class ReviewMode { FLASHCARD, FILL_IN_BLANK }
+enum class ReviewMode { FLASHCARD, FILL_IN_BLANK, FIRST_LETTERS, REVERSE, TYPE_WHOLE }

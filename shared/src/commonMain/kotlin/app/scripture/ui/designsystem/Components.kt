@@ -14,12 +14,15 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -43,14 +46,27 @@ val gradeLabel = mapOf(
     app.scripture.domain.Grade.EASY to "Easy",
 )
 
+/** Drill choice label, e.g. ReviewMode.FIRST_LETTERS → "First letters". */
+val drillLabel = mapOf(
+    app.scripture.domain.ReviewMode.FLASHCARD to "Flashcard",
+    app.scripture.domain.ReviewMode.FILL_IN_BLANK to "Fill in the blank",
+    app.scripture.domain.ReviewMode.FIRST_LETTERS to "First letters",
+    app.scripture.domain.ReviewMode.REVERSE to "Reverse — name the reference",
+    app.scripture.domain.ReviewMode.TYPE_WHOLE to "Type the whole verse",
+)
+
 /**
  * Standard screen frame: title, optional back, airy padding, and content
  * that never stretches too wide on desktop (max ~560dp reading column).
+ * Pass [scrollable] for tall screens whose content must not be clipped —
+ * leave it false when the content holds a LazyColumn, which needs bounded
+ * height to scroll itself.
  */
 @Composable
 fun ScreenScaffold(
     title: String,
     onBack: (() -> Unit)? = null,
+    scrollable: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     androidx.compose.foundation.layout.Box(
@@ -61,6 +77,13 @@ fun ScreenScaffold(
             modifier = Modifier
                 .fillMaxSize()
                 .widthIn(max = 560.dp)
+                .then(
+                    if (scrollable) {
+                        Modifier.verticalScroll(rememberScrollState())
+                    } else {
+                        Modifier
+                    },
+                )
                 .padding(Spacing.xl),
         ) {
             Row(
@@ -134,6 +157,30 @@ fun TagChip(
             }
             .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
     )
+}
+
+/**
+ * One row of a single-choice group: a radio button and its label, the whole
+ * row tappable. Selection state stays with the caller — rows are pure.
+ */
+@Composable
+fun ChoiceRow(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(50))
+            .clickable(onClick = onClick)
+            .padding(horizontal = Spacing.xs, vertical = Spacing.xs),
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Text(label, style = MaterialTheme.body, modifier = Modifier.padding(start = Spacing.xs))
+    }
 }
 
 /**

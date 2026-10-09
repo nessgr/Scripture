@@ -3,6 +3,7 @@ package app.scripture
 import app.scripture.data.ScriptureData
 import app.scripture.data.VerseRepository
 import app.scripture.domain.Grade
+import app.scripture.domain.ImportMode
 import app.scripture.domain.ImportOutcome
 import app.scripture.domain.ReviewMode
 import app.scripture.domain.ReviewRecord
@@ -78,24 +79,60 @@ class ScriptureStore(private val repository: VerseRepository) {
     }
 
     /**
-     * Imports verses from simple-JSON text (see domain/VerseImport.kt for the
-     * format). Forgiving: rows that duplicate the library or lack
-     * reference/text are skipped and reported in the outcome — one bad row
-     * never aborts the batch.
+     * Parses and plans a batch without touching the library — what the
+     * Import screen shows before asking add-or-replace. Counts are neutral:
+     * only duplicates *within the batch* are skipped, since duplicates
+     * against the library only matter for ADD.
      */
-    fun importVerses(text: String): ImportOutcome {
+    fun previewImport(text: String): ImportOutcome {
         val parsed = parseImportText(text) ?: return ImportOutcome.NotJson
+        var next = 0
         val plan = planImport(
-            existing = _verses.value,
+            existing = emptyList(),
             parsed = parsed.verses,
             todayEpochDay = todayEpochDay(),
-            newId = { Uuid.random().toString() },
+            newId = { "preview-${next++}" }, // discarded — preview never commits
+            collection = parsed.title,
         )
-        if (plan.versesToAdd.isNotEmpty()) updateVerses { it + plan.versesToAdd }
         return ImportOutcome.Imported(
             addedCount = plan.versesToAdd.size,
             duplicateCount = plan.duplicateCount,
             invalidCount = parsed.invalidCount,
+            title = parsed.title,
+        )
+    }
+
+    /**
+     * Imports verses from simple-JSON text (see domain/VerseImport.kt for the
+     * format). Forgiving: rows that duplicate the library or lack
+     * reference/text are skipped and reported in the outcome — one bad row
+     * never aborts the batch. [ImportMode.REPLACE] swaps the whole library
+     * for the batch instead of appending; review history goes with it, for
+     * the same reason deleteVerse clears a verse's records.
+     */
+    fun importVerses(text: String, mode: ImportMode = ImportMode.ADD): ImportOutcome {
+        val parsed = parseImportText(text) ?: return ImportOutcome.NotJson
+        val plan = planImport(
+            existing = if (mode == ImportMode.REPLACE) emptyList() else _verses.value,
+            parsed = parsed.verses,
+            todayEpochDay = todayEpochDay(),
+            newId = { Uuid.random().toString() },
+            collection = parsed.title,
+        )
+        when (mode) {
+            ImportMode.ADD -> if (plan.versesToAdd.isNotEmpty()) updateVerses { it + plan.versesToAdd }
+            ImportMode.REPLACE -> {
+                _verses.value = plan.versesToAdd
+                history = emptyList()
+                _reviewQueue.value = emptyList()
+                persist()
+            }
+        }
+        return ImportOutcome.Imported(
+            addedCount = plan.versesToAdd.size,
+            duplicateCount = plan.duplicateCount,
+            invalidCount = parsed.invalidCount,
+            title = parsed.title,
         )
     }
 

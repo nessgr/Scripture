@@ -15,6 +15,7 @@ data class Verse(
     val text: String,
     val tags: List<String> = emptyList(),
     val translation: String? = null,   // e.g. "NWT" — purely informational
+    val collection: String? = null,     // title of the file the verse was imported from
     val createdEpochDay: Long,
     val progress: ReviewProgress = ReviewProgress(),
 )

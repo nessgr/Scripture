@@ -2,6 +2,7 @@ package app.scripture
 
 import app.scripture.data.InMemoryDataStorage
 import app.scripture.data.VerseRepository
+import app.scripture.domain.ImportMode
 import app.scripture.domain.ImportOutcome
 import app.scripture.domain.ImportableVerse
 import app.scripture.domain.ParsedVerse
@@ -95,6 +96,34 @@ class VerseImportTest {
         assertEquals(1, parsed?.verses?.size)
     }
 
+    @Test
+    fun titledDocumentParsesTitleAndVerses() {
+        val parsed = parseImportText(
+            """
+            {"title": "  Comfort Verses ", "verses": [
+              {"reference": "Isaiah 25:8", "text": "He will swallow up death"},
+              {"reference": ""}
+            ]}
+            """.trimIndent()
+        )
+        assertEquals("Comfort Verses", parsed?.title)
+        assertEquals(1, parsed?.verses?.size)
+        assertEquals(1, parsed?.invalidCount)
+    }
+
+    @Test
+    fun documentWithoutTitleHasNoTitle() {
+        val parsed = parseImportText("""{"verses": [{"reference": "John 3:16", "text": "text"}]}""")
+        assertNull(parsed?.title)
+        assertEquals(1, parsed?.verses?.size)
+    }
+
+    @Test
+    fun nonStringOrBlankTitleIsIgnored() {
+        assertNull(parseImportText("""{"title": 42, "verses": []}""")?.title)
+        assertNull(parseImportText("""{"title": "   ", "verses": []}""")?.title)
+    }
+
     // ---- planning ----
 
     private val parsedRows = rows(
@@ -165,6 +194,20 @@ class VerseImportTest {
         assertEquals(listOf("John 3:16", "Psalm 23:1"), plan.versesToAdd.map { it.reference })
     }
 
+    @Test
+    fun planStampsCollectionTitleOnEveryVerse() {
+        val plan = planImport(emptyList(), parsedRows, todayEpochDay = 0, newId = { "new" }, collection = "Comfort Verses")
+        assertTrue(plan.versesToAdd.all { it.collection == "Comfort Verses" })
+    }
+
+    @Test
+    fun collectionSurvivesEditing() {
+        val store = ScriptureStore(VerseRepository(InMemoryDataStorage()))
+        store.importVerses("""{"title": "Comfort", "verses": [{"reference": "Isaiah 25:8", "text": "old"}]}""")
+        store.updateVerse(store.verses.value.first().id, reference = "Isaiah 25:8", text = "fixed", tags = emptyList())
+        assertEquals("Comfort", store.verses.value.first().collection)
+    }
+
     // ---- store integration ----
 
     @Test
@@ -207,5 +250,65 @@ class VerseImportTest {
         )
         val ids = store.verses.value.map { it.id }
         assertNotEquals(ids[0], ids[1])
+    }
+
+    @Test
+    fun previewReportsCountsAndTitleWithoutCommitting() {
+        val store = ScriptureStore(VerseRepository(InMemoryDataStorage()))
+        store.importVerses("""[{"reference": "John 3:16", "text": "already here"}]""")
+        val preview = store.previewImport(
+            """
+            {"title": "Comfort", "verses": [
+              {"reference": "john 3:16", "text": "duplicate of library"},
+              {"reference": "Psalm 23:1", "text": "new"},
+              {"reference": ""}
+            ]}
+            """.trimIndent()
+        )
+        // The library duplicate is NOT counted here — preview is neutral
+        // about add-vs-replace, so only batch-internal duplicates matter.
+        assertEquals(
+            ImportOutcome.Imported(addedCount = 2, duplicateCount = 0, invalidCount = 1, title = "Comfort"),
+            preview,
+        )
+        assertEquals(1, store.verses.value.size) // nothing committed
+    }
+
+    @Test
+    fun replaceModeSwapsLibraryForTheBatch() {
+        val store = ScriptureStore(VerseRepository(InMemoryDataStorage()))
+        store.importVerses("""[{"reference": "Old 1:1", "text": "old"}]""")
+        val outcome = store.importVerses(
+            """{"title": "New", "verses": [{"reference": "New 1:1", "text": "new"}]}""",
+            mode = ImportMode.REPLACE,
+        )
+        assertEquals(
+            ImportOutcome.Imported(addedCount = 1, duplicateCount = 0, invalidCount = 0, title = "New"),
+            outcome,
+        )
+        assertEquals(listOf("New 1:1"), store.verses.value.map { it.reference })
+        assertEquals("New", store.verses.value.first().collection)
+    }
+
+    @Test
+    fun replaceModeCountsDuplicatesOnlyWithinTheBatch() {
+        val store = ScriptureStore(VerseRepository(InMemoryDataStorage()))
+        store.importVerses("""[{"reference": "John 3:16", "text": "already here"}]""")
+        val outcome = store.importVerses(
+            """[{"reference": "john 3:16", "text": "same verse"}]""",
+            mode = ImportMode.REPLACE,
+        )
+        // The old library doesn't matter to a replace: the batch is the library now.
+        assertEquals(ImportOutcome.Imported(addedCount = 1, duplicateCount = 0, invalidCount = 0), outcome)
+    }
+
+    @Test
+    fun replaceModeClearsTheReviewQueue() {
+        val store = ScriptureStore(VerseRepository(InMemoryDataStorage()))
+        store.importVerses("""[{"reference": "Old 1:1", "text": "old"}]""")
+        store.startReview()
+        assertEquals(1, store.reviewQueue.value.size)
+        store.importVerses("""[{"reference": "New 1:1", "text": "new"}]""", mode = ImportMode.REPLACE)
+        assertEquals(0, store.reviewQueue.value.size)
     }
 }
