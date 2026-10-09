@@ -22,3 +22,5 @@ build_log.txt
 
 ### OS ###
 .DS_Store
+### Local verse data (personal files, not app code)
+my-verses.json
