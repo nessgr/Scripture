@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.background
@@ -28,9 +29,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import app.scripture.ThemeChoice
 import app.scripture.domain.Verse
 
 /*
@@ -60,13 +65,15 @@ val drillLabel = mapOf(
  * that never stretches too wide on desktop (max ~560dp reading column).
  * Pass [scrollable] for tall screens whose content must not be clipped —
  * leave it false when the content holds a LazyColumn, which needs bounded
- * height to scroll itself.
+ * height to scroll itself. [trailing] lands at the end of the title row —
+ * where the library's theme switch lives.
  */
 @Composable
 fun ScreenScaffold(
     title: String,
     onBack: (() -> Unit)? = null,
     scrollable: Boolean = false,
+    trailing: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     androidx.compose.foundation.layout.Box(
@@ -77,6 +84,10 @@ fun ScreenScaffold(
             modifier = Modifier
                 .fillMaxSize()
                 .widthIn(max = 560.dp)
+                // Android draws edge-to-edge (forced at targetSdk 37); the
+                // background keeps painting behind the bars while this keeps
+                // content out of them. Desktop has no insets — a no-op there.
+                .safeDrawingPadding()
                 .then(
                     if (scrollable) {
                         Modifier.verticalScroll(rememberScrollState())
@@ -99,7 +110,8 @@ fun ScreenScaffold(
                     ) { Text("←") }
                     Spacer(Modifier.width(Spacing.md))
                 }
-                Text(title, style = MaterialTheme.title)
+                Text(title, style = MaterialTheme.title, modifier = Modifier.weight(1f))
+                trailing?.invoke()
             }
             content()
         }
@@ -122,6 +134,75 @@ fun PrimaryButton(
     ) {
         Text(text, style = MaterialTheme.body)
     }
+}
+
+/** Toggle labels, e.g. ThemeChoice.SYSTEM → "Auto". */
+val themeToggleLabel = mapOf(
+    ThemeChoice.SYSTEM to "Auto",
+    ThemeChoice.LIGHT to "Light",
+    ThemeChoice.DARK to "Dark",
+)
+
+/**
+ * The three-way light switch, as a compact segmented control: a pill track
+ * in surfaceVariant, the chosen segment filled with accent. Text, not
+ * sun/moon glyphs — glyphs render differently on every platform, and the
+ * app's voice is type.
+ */
+@Composable
+fun ThemeToggle(
+    choice: ThemeChoice,
+    onChoice: (ThemeChoice) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        modifier = modifier
+            .clip(RoundedCornerShape(50))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(Spacing.xs),
+    ) {
+        ThemeChoice.entries.forEach { option ->
+            val selected = option == choice
+            Text(
+                text = themeToggleLabel.getValue(option),
+                style = MaterialTheme.label,
+                color = if (selected) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .clickable { onChoice(option) }
+                    .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+            )
+        }
+    }
+}
+
+/**
+ * Verse text with an illuminated drop cap: the first letter oversized in
+ * Lora and accent-colored, the rest in the scripture voice. Surrogate
+ * pairs are kept whole so an emoji first character can't be split.
+ */
+@Composable
+fun DropCapText(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    if (text.isEmpty()) return
+    val capSpan = MaterialTheme.dropCap
+        .toSpanStyle()
+        .copy(color = MaterialTheme.colorScheme.primary)
+    val capEnd = if (text.length >= 2 && text[0].isHighSurrogate()) 2 else 1
+    Text(
+        text = buildAnnotatedString {
+            withStyle(capSpan) { append(text.substring(0, capEnd)) }
+            append(text.substring(capEnd))
+        },
+        style = MaterialTheme.scriptureBody,
+        color = MaterialTheme.scriptureColor,
+        modifier = modifier,
+    )
 }
 
 /**
@@ -222,14 +303,14 @@ fun VerseCard(
     if (onClick != null) {
         Card(
             onClick = onClick,
-            shape = MaterialTheme.shapes.medium,
+            shape = archShape,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             modifier = modifier.fillMaxWidth(),
             content = content,
         )
     } else {
         Card(
-            shape = MaterialTheme.shapes.medium,
+            shape = archShape,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             modifier = modifier.fillMaxWidth(),
             content = content,
@@ -282,7 +363,7 @@ fun EmptyState(message: String, hint: String? = null) {
             Text(
                 hint,
                 style = MaterialTheme.body,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.hintColor,
                 textAlign = TextAlign.Center,
             )
         }
@@ -298,7 +379,7 @@ fun ClickableCard(
 ) {
     Card(
         onClick = onClick,
-        shape = MaterialTheme.shapes.large,
+        shape = archShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = modifier.fillMaxWidth(),
     ) {

@@ -18,6 +18,7 @@ import app.scripture.ui.designsystem.PrimaryButton
 import app.scripture.ui.designsystem.ScreenScaffold
 import app.scripture.ui.designsystem.Spacing
 import app.scripture.ui.designsystem.body
+import app.scripture.ui.designsystem.hintColor
 import app.scripture.ui.designsystem.label
 import app.scripture.ui.designsystem.scriptureColor
 import app.scripture.ui.designsystem.scriptureDisplay
@@ -97,7 +98,7 @@ fun AboutScreen(onBack: () -> Unit) {
                 Text(
                     "Couldn't open a browser — copy this address instead:",
                     style = MaterialTheme.label,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.hintColor,
                     modifier = Modifier.padding(top = Spacing.xs),
                 )
             }
@@ -106,7 +107,7 @@ fun AboutScreen(onBack: () -> Unit) {
             Text(
                 supportUrl,
                 style = MaterialTheme.label.copy(fontFamily = FontFamily.Monospace),
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.hintColor,
             )
         }
     }

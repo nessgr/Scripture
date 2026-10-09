@@ -38,6 +38,7 @@ import app.scripture.ui.designsystem.GradeBar
 import app.scripture.ui.designsystem.PrimaryButton
 import app.scripture.ui.designsystem.ScreenScaffold
 import app.scripture.ui.designsystem.Spacing
+import app.scripture.ui.designsystem.hintColor
 import app.scripture.ui.designsystem.label
 import app.scripture.ui.designsystem.scriptureBody
 import app.scripture.ui.designsystem.scriptureColor
@@ -154,7 +155,7 @@ internal fun RecallReview(
         Text(
             text = "${verse.reference.uppercase()} — $hint",
             style = MaterialTheme.label,
-            color = MaterialTheme.colorScheme.outline,
+            color = MaterialTheme.hintColor,
         )
 
         ClickableCard(onClick = { revealed = true }) {
@@ -169,7 +170,7 @@ internal fun RecallReview(
             Text(
                 text = if (revealed) verse.text else hidden,
                 style = MaterialTheme.scriptureBody,
-                color = if (revealed) MaterialTheme.scriptureColor else MaterialTheme.colorScheme.outline,
+                color = if (revealed) MaterialTheme.scriptureColor else MaterialTheme.hintColor,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -198,7 +199,7 @@ internal fun ReverseReview(
         Text(
             text = "Where is this from?",
             style = MaterialTheme.label,
-            color = MaterialTheme.colorScheme.outline,
+            color = MaterialTheme.hintColor,
         )
 
         ClickableCard(onClick = { revealed = true }) {
@@ -281,7 +282,7 @@ internal fun TypedVerseReview(
             Text(
                 text = "${result.matchedCount} of ${result.tokens.size} words matched",
                 style = MaterialTheme.label,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.hintColor,
             )
             answerFooter()
         }

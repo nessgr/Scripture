@@ -1,7 +1,13 @@
 package app.scripture
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,65 +45,79 @@ sealed class Screen {
 /** Root composable shared by both entry points (Android + desktop). */
 @Composable
 fun App() {
-    val store = remember { ScriptureStore(VerseRepository(defaultDataStorage())) }
+    val storage = remember { defaultDataStorage() }
+    val store = remember { ScriptureStore(VerseRepository(storage)) }
+    val themeStore = remember { ThemeStore(storage) }
     var screen by remember { mutableStateOf<Screen>(Screen.Library) }
+
+    val themeChoice by themeStore.choice.collectAsState()
 
     LaunchedEffect(store) { store.load() }
 
-    ScriptureTheme {
-        // Captured into a plain val: a delegated `by remember` var can't be
-        // smart-cast, and the is-branches need verseId.
-        when (val current = screen) {
-            Screen.Library -> LibraryScreen(
-                store = store,
-                onAddVerse = { screen = Screen.AddVerse },
-                onStartReview = {
-                    store.startReview()
-                    screen = Screen.Review
-                },
-                onOpenVerse = { verseId -> screen = Screen.VerseDetail(verseId) },
-                onImport = { screen = Screen.Import },
-                onAbout = { screen = Screen.About },
-            )
-            Screen.About -> AboutScreen(onBack = { screen = Screen.Library })
-            Screen.AddVerse -> AddVerseScreen(
-                store = store,
-                onDone = { screen = Screen.Library },
-            )
-            Screen.Import -> ImportScreen(
-                store = store,
-                onDone = { screen = Screen.Library },
-            )
-            is Screen.VerseDetail -> VerseDetailScreen(
-                store = store,
-                verseId = current.verseId,
-                onBack = { screen = Screen.Library },
-                onEdit = { verseId -> screen = Screen.EditVerse(verseId) },
-                onPractice = { verseId, mode -> screen = Screen.Practice(verseId, mode) },
-            )
-            is Screen.Practice -> {
-                val verseId = current.verseId
-                PracticeScreen(
+    ScriptureTheme(choice = themeChoice) {
+        // The app's one motion signature: a short crossfade. Alpha-only —
+        // cheap on every platform, calm by design. AnimatedContent hands
+        // the current target to the lambda as a plain val, so the
+        // is-branches below can smart-cast the verseId out of it.
+        AnimatedContent(
+            targetState = screen,
+            transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(180)) },
+            label = "screen",
+        ) { current ->
+            when (current) {
+                Screen.Library -> LibraryScreen(
                     store = store,
-                    verseId = verseId,
-                    mode = current.mode,
-                    // Practice exits back to the verse it came from
-                    onExit = { screen = Screen.VerseDetail(verseId) },
+                    themeChoice = themeChoice,
+                    onThemeChoice = { themeStore.set(it) },
+                    onAddVerse = { screen = Screen.AddVerse },
+                    onStartReview = {
+                        store.startReview()
+                        screen = Screen.Review
+                    },
+                    onOpenVerse = { verseId -> screen = Screen.VerseDetail(verseId) },
+                    onImport = { screen = Screen.Import },
+                    onAbout = { screen = Screen.About },
+                )
+                Screen.About -> AboutScreen(onBack = { screen = Screen.Library })
+                Screen.AddVerse -> AddVerseScreen(
+                    store = store,
+                    onDone = { screen = Screen.Library },
+                )
+                Screen.Import -> ImportScreen(
+                    store = store,
+                    onDone = { screen = Screen.Library },
+                )
+                is Screen.VerseDetail -> VerseDetailScreen(
+                    store = store,
+                    verseId = current.verseId,
+                    onBack = { screen = Screen.Library },
+                    onEdit = { verseId -> screen = Screen.EditVerse(verseId) },
+                    onPractice = { verseId, mode -> screen = Screen.Practice(verseId, mode) },
+                )
+                is Screen.Practice -> {
+                    val verseId = current.verseId
+                    PracticeScreen(
+                        store = store,
+                        verseId = verseId,
+                        mode = current.mode,
+                        // Practice exits back to the verse it came from
+                        onExit = { screen = Screen.VerseDetail(verseId) },
+                    )
+                }
+                is Screen.EditVerse -> {
+                    val verseId = current.verseId
+                    EditVerseScreen(
+                        store = store,
+                        verseId = verseId,
+                        // Saving or backing out returns to the detail screen it came from
+                        onDone = { screen = Screen.VerseDetail(verseId) },
+                    )
+                }
+                Screen.Review -> ReviewScreen(
+                    store = store,
+                    onExit = { screen = Screen.Library },
                 )
             }
-            is Screen.EditVerse -> {
-                val verseId = current.verseId
-                EditVerseScreen(
-                    store = store,
-                    verseId = verseId,
-                    // Saving or backing out returns to the detail screen it came from
-                    onDone = { screen = Screen.VerseDetail(verseId) },
-                )
-            }
-            Screen.Review -> ReviewScreen(
-                store = store,
-                onExit = { screen = Screen.Library },
-            )
         }
     }
 }

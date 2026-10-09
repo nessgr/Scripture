@@ -1,5 +1,6 @@
 package app.scripture.ui.designsystem
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -48,6 +49,21 @@ val MaterialTheme.body: TextStyle
 val MaterialTheme.label: TextStyle
     @Composable get() = typography.labelMedium
 
+/** Serif, 42sp — the drop cap (see DropCapText). */
+val MaterialTheme.dropCap: TextStyle
+    @Composable get() = typography.headlineMedium
+
 /** The custom scripture text color (see Theme.kt). */
 val MaterialTheme.scriptureColor: Color
     @Composable get() = LocalExtendedColors.current.scripture
+
+/** Quiet-but-readable color for hints and metadata (see Theme.kt). */
+val MaterialTheme.hintColor: Color
+    @Composable get() = LocalExtendedColors.current.hint
+
+/**
+ * The app's signature silhouette: an arch — tall radius overhead, quiet
+ * footing below, like a window in an illuminated manuscript. Cards wear
+ * it; buttons don't, so tappable affordances stay conventional.
+ */
+val archShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 6.dp, bottomEnd = 6.dp)

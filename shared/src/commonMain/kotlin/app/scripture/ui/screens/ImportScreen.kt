@@ -25,6 +25,7 @@ import app.scripture.ui.designsystem.PrimaryButton
 import app.scripture.ui.designsystem.ScreenScaffold
 import app.scripture.ui.designsystem.Spacing
 import app.scripture.ui.designsystem.body
+import app.scripture.ui.designsystem.hintColor
 import app.scripture.ui.designsystem.label
 import app.scripture.ui.designsystem.title
 import kotlinx.coroutines.launch
@@ -107,7 +108,7 @@ fun ImportScreen(
                 Text(
                     "Replacing removes every verse currently in your library.",
                     style = MaterialTheme.label,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.hintColor,
                     modifier = Modifier.padding(top = Spacing.xs),
                 )
                 OutlinedButton(
@@ -142,7 +143,7 @@ fun ImportScreen(
                         Text(
                             "Couldn't read that file.",
                             style = MaterialTheme.label,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.hintColor,
                             modifier = Modifier.padding(top = Spacing.sm),
                         )
                     }
@@ -162,7 +163,7 @@ fun ImportScreen(
                     Text(
                         "That doesn't look like JSON. Check that the text starts with [ or { and try again.",
                         style = MaterialTheme.body,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.hintColor,
                         modifier = Modifier.padding(bottom = Spacing.sm),
                     )
                 }

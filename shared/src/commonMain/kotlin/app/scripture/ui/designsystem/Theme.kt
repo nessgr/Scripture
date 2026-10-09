@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.Font
+import app.scripture.ThemeChoice
 import app.scripture.shared.generated.resources.Res
 import app.scripture.shared.generated.resources.inter_medium
 import app.scripture.shared.generated.resources.inter_regular
@@ -66,7 +67,7 @@ private val DarkPalette = Palette(
     surface = Color(0xFF1B1D1A),
     onSurface = Color(0xFFE8E6E0),
     surfaceVariant = Color(0xFF242622),
-    outline = Color(0xFF3E413C),
+    outline = Color(0xFF4A4D47),      // borders only — still quiet, but OutlinedButtons read
     scripture = Color(0xFFDCDAD2),
 )
 
@@ -83,14 +84,24 @@ private fun scheme(p: Palette): ColorScheme = lightColorScheme(
 )
 
 /**
- * The one Material role Material3 does not have: a text color dedicated to
- * scripture. Provided via CompositionLocal — the documented M3 pattern for
- * extending the theme with custom roles.
+ * The Material roles Material3 does not have: a text color dedicated to
+ * scripture, and a readable "quiet" color for hints and metadata. Provided
+ * via CompositionLocal — the documented M3 pattern for extending the theme.
+ *
+ * [hint] is deliberately NOT `outline`: outline is a border color, far too
+ * low-contrast for text (unreadably so on the dark palette). Hints dim by
+ * alpha over the readable ink instead.
  */
-data class ExtendedColors(val scripture: Color)
+data class ExtendedColors(
+    val scripture: Color,
+    val hint: Color,
+)
 
 val LocalExtendedColors = staticCompositionLocalOf {
-    ExtendedColors(scripture = LightPalette.scripture)
+    ExtendedColors(
+        scripture = LightPalette.scripture,
+        hint = LightPalette.onBackground.copy(alpha = 0.62f),
+    )
 }
 
 /**
@@ -121,6 +132,12 @@ private fun buildTypography(lora: FontFamily, inter: FontFamily): Typography = T
         fontFamily = lora, fontWeight = FontWeight.SemiBold,
         fontSize = 22.sp, lineHeight = 32.sp,
     ),
+    headlineMedium = TextStyle(
+        // The drop cap: two body lines tall, so the first letter of a verse
+        // opens like an illuminated manuscript.
+        fontFamily = lora, fontWeight = FontWeight.SemiBold,
+        fontSize = 42.sp, lineHeight = 42.sp,
+    ),
     bodyLarge = TextStyle(
         fontFamily = lora, fontWeight = FontWeight.Normal,
         fontSize = 18.sp, lineHeight = 30.sp,
@@ -143,12 +160,18 @@ private fun buildTypography(lora: FontFamily, inter: FontFamily): Typography = T
     ),
 )
 
-/** Root of every screen: wrap your composable in this and get the full look. */
+/** Root of every screen: wrap your composable in this and get the full look.
+ *  [choice] decides which palette is used — SYSTEM follows the platform. */
 @Composable
 fun ScriptureTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    choice: ThemeChoice = ThemeChoice.SYSTEM,
     content: @Composable () -> Unit,
 ) {
+    val darkTheme = when (choice) {
+        ThemeChoice.SYSTEM -> isSystemInDarkTheme()
+        ThemeChoice.LIGHT -> false
+        ThemeChoice.DARK -> true
+    }
     val palette = if (darkTheme) DarkPalette else LightPalette
     MaterialTheme(
         colorScheme = if (darkTheme) {
@@ -169,7 +192,10 @@ fun ScriptureTheme(
         typography = scriptureTypography(),
     ) {
         CompositionLocalProvider(
-            LocalExtendedColors provides ExtendedColors(scripture = palette.scripture),
+            LocalExtendedColors provides ExtendedColors(
+                scripture = palette.scripture,
+                hint = palette.onBackground.copy(alpha = 0.62f),
+            ),
         ) {
             content()
         }

@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import app.scripture.ScriptureStore
+import app.scripture.ThemeChoice
 import app.scripture.domain.LibraryFilter
 import app.scripture.domain.Verse
 import app.scripture.domain.allTags
@@ -34,14 +35,16 @@ import app.scripture.ui.designsystem.PrimaryButton
 import app.scripture.ui.designsystem.ScreenScaffold
 import app.scripture.ui.designsystem.Spacing
 import app.scripture.ui.designsystem.TagChip
+import app.scripture.ui.designsystem.ThemeToggle
 import app.scripture.ui.designsystem.VerseCard
-import app.scripture.ui.designsystem.label
 import app.scripture.ui.designsystem.reference
 
 /** Home: the verse library, searchable and tag-filterable, plus review entry. */
 @Composable
 fun LibraryScreen(
     store: ScriptureStore,
+    themeChoice: ThemeChoice,
+    onThemeChoice: (ThemeChoice) -> Unit,
     onAddVerse: () -> Unit,
     onStartReview: () -> Unit,
     onOpenVerse: (String) -> Unit,
@@ -60,7 +63,10 @@ fun LibraryScreen(
     val visible = remember(verses, filter) { filterVerses(verses, filter) }
     val tags = remember(verses) { allTags(verses) }
 
-    ScreenScaffold(title = "Scripture") {
+    ScreenScaffold(
+        title = "Scripture",
+        trailing = { ThemeToggle(choice = themeChoice, onChoice = onThemeChoice) },
+    ) {
         if (verses.isEmpty()) {
             EmptyState(
                 message = "No verses yet",
@@ -84,10 +90,13 @@ fun LibraryScreen(
             ) {
                 Text(
                     // Counts stay unfiltered: "Start review" grades every due
-                    // verse, whatever the list is narrowed to.
-                    text = if (filter.isActive) "${visible.size} of ${verses.size} verses match"
-                           else "$dueCount due today · ${verses.size} total",
-                    style = MaterialTheme.label,
+                    // verse, whatever the list is narrowed to. Letterspaced
+                    // small caps — the metadata voice throughout the app.
+                    text = (
+                        if (filter.isActive) "${visible.size} of ${verses.size} verses match"
+                        else "$dueCount due today · ${verses.size} total"
+                    ).uppercase(),
+                    style = MaterialTheme.reference,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {

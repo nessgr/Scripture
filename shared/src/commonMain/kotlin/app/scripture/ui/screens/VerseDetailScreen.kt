@@ -21,15 +21,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import app.scripture.ScriptureStore
 import app.scripture.domain.ReviewMode
+import app.scripture.ui.designsystem.DropCapText
 import app.scripture.ui.designsystem.EmptyState
 import app.scripture.ui.designsystem.PrimaryButton
 import app.scripture.ui.designsystem.ScreenScaffold
 import app.scripture.ui.designsystem.Spacing
 import app.scripture.ui.designsystem.TagChip
+import app.scripture.ui.designsystem.hintColor
 import app.scripture.ui.designsystem.label
 import app.scripture.ui.designsystem.reference
-import app.scripture.ui.designsystem.scriptureBody
-import app.scripture.ui.designsystem.scriptureColor
 
 /**
  * One verse, opened from the library: the full text (the list card truncates
@@ -59,18 +59,16 @@ fun VerseDetailScreen(
 
     ScreenScaffold(title = verse.reference.uppercase(), onBack = onBack) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-            Text(
-                verse.text,
-                style = MaterialTheme.scriptureBody,
-                color = MaterialTheme.scriptureColor,
-            )
+            // The reading surface — the one place the drop cap lives, so the
+            // drills stay plain and the detail page feels like the page itself.
+            DropCapText(verse.text)
 
             if (verse.translation != null || verse.tags.isNotEmpty()) {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     if (verse.translation != null) Text(
-                        verse.translation,
-                        style = MaterialTheme.label,
-                        color = MaterialTheme.colorScheme.outline,
+                        verse.translation.uppercase(),
+                        style = MaterialTheme.reference,
+                        color = MaterialTheme.hintColor,
                     )
                     verse.tags.forEach { TagChip(it) }
                 }
@@ -86,7 +84,7 @@ fun VerseDetailScreen(
                 Text(
                     reviewStatus(verse.progress.dueEpochDay, store.todayEpochDay()),
                     style = MaterialTheme.label,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.hintColor,
                 )
             }
 
