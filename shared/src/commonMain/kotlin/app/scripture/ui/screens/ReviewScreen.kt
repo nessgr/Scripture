@@ -2,11 +2,9 @@ package app.scripture.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -18,14 +16,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import app.scripture.ScriptureStore
 import app.scripture.domain.FillInBlank
 import app.scripture.domain.Grade
 import app.scripture.domain.ReviewMode
 import app.scripture.domain.Verse
+import app.scripture.domain.checkTypedVerse
+import app.scripture.domain.firstLetters
 import app.scripture.domain.makeFillInBlank
+import app.scripture.domain.maxBlanksFor
 import app.scripture.domain.nextProgress
+import app.scripture.domain.normalizeWord
+import app.scripture.domain.reviewModeFor
 import app.scripture.ui.designsystem.ClickableCard
 import app.scripture.ui.designsystem.EmptyState
 import app.scripture.ui.designsystem.GradeBar
@@ -37,7 +43,10 @@ import app.scripture.ui.designsystem.scriptureBody
 import app.scripture.ui.designsystem.scriptureColor
 import app.scripture.ui.designsystem.scriptureDisplay
 
-/** A review session: flashcards and fill-in-the-blank, graded with SRS buttons. */
+/**
+ * A review session: five drills rotate by how well the verse is already
+ * known (see domain/Drills.kt), each graded with the SRS buttons.
+ */
 @Composable
 fun ReviewScreen(
     store: ScriptureStore,
@@ -56,18 +65,46 @@ fun ReviewScreen(
         if (current == null) {
             SessionSummary(onExit = onExit)
         } else {
-            // First encounter of a verse is always a plain flashcard;
-            // after that, alternate flashcard and fill-in-the-blank.
-            val puzzle = remember(current.id, current.progress.repetitions) {
-                val seed = current.id.hashCode().toLong() xor current.progress.repetitions.toLong()
-                makeFillInBlank(current.text, seed)
-            }
-            val useFillInBlank = current.progress.repetitions % 2 == 1 && puzzle.blankedIndexes.isNotEmpty()
-
-            if (useFillInBlank) {
-                FillInBlankReview(store = store, verse = current, puzzle = puzzle)
-            } else {
-                FlashcardReview(store = store, verse = current)
+            // Which drill this review gets: the rotation asks for more of
+            // the verse each round the user remembers it.
+            when (reviewModeFor(current.progress.repetitions)) {
+                ReviewMode.FLASHCARD -> RecallReview(
+                    verse = current,
+                    hint = "recall it first",
+                    hidden = "Tap to reveal",
+                ) { GradeFooter(store, current, ReviewMode.FLASHCARD) }
+                ReviewMode.FILL_IN_BLANK -> {
+                    val puzzle = remember(current.id, current.progress.repetitions) {
+                        makeFillInBlank(
+                            current.text,
+                            seed = current.id.hashCode().toLong() xor current.progress.repetitions.toLong(),
+                            maxBlanks = maxBlanksFor(current.progress.repetitions),
+                        )
+                    }
+                    // A verse too short to blank out falls back to a reveal.
+                    if (puzzle.blankedIndexes.isEmpty()) {
+                        RecallReview(
+                            verse = current,
+                            hint = "recall it first",
+                            hidden = "Tap to reveal",
+                        ) { GradeFooter(store, current, ReviewMode.FLASHCARD) }
+                    } else {
+                        FillInBlankReview(verse = current, puzzle = puzzle) {
+                            GradeFooter(store, current, ReviewMode.FILL_IN_BLANK)
+                        }
+                    }
+                }
+                ReviewMode.FIRST_LETTERS -> RecallReview(
+                    verse = current,
+                    hint = "say it from the first letters",
+                    hidden = firstLetters(current.text),
+                ) { GradeFooter(store, current, ReviewMode.FIRST_LETTERS) }
+                ReviewMode.REVERSE -> ReverseReview(verse = current) {
+                    GradeFooter(store, current, ReviewMode.REVERSE)
+                }
+                ReviewMode.TYPE_WHOLE -> TypedVerseReview(verse = current) {
+                    GradeFooter(store, current, ReviewMode.TYPE_WHOLE)
+                }
             }
         }
     }
@@ -88,14 +125,34 @@ private fun SessionSummary(onExit: () -> Unit) {
     }
 }
 
-/** Show the reference, recall from memory, reveal, then grade. */
+/** The SRS grade bar — review's footer of choice: grading reschedules the verse. */
 @Composable
-private fun FlashcardReview(store: ScriptureStore, verse: Verse) {
+private fun GradeFooter(store: ScriptureStore, verse: Verse, mode: ReviewMode) {
+    GradeBar(
+        preview = { grade -> intervalPreview(verse, grade, store.todayEpochDay()) },
+        onGrade = { grade -> store.gradeCurrent(grade, mode) },
+    )
+}
+
+/**
+ * The reveal drill: reference up top, [hidden] standing in for the verse
+ * ("Tap to reveal", or the first letters), then the full text. Serves both
+ * the flashcard and the first-letters drill — they differ only in the prompt.
+ * The [answerFooter] slot is what shows once the answer is out; review puts
+ * the grade bar there, practice puts its own buttons.
+ */
+@Composable
+internal fun RecallReview(
+    verse: Verse,
+    hint: String,
+    hidden: String,
+    answerFooter: @Composable () -> Unit,
+) {
     var revealed by remember(verse.id) { mutableStateOf(false) }
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
         Text(
-            text = "${verse.reference.uppercase()} — recall it first",
+            text = "${verse.reference.uppercase()} — $hint",
             style = MaterialTheme.label,
             color = MaterialTheme.colorScheme.outline,
         )
@@ -110,37 +167,139 @@ private fun FlashcardReview(store: ScriptureStore, verse: Verse) {
             )
             Spacer(Modifier.height(Spacing.md))
             Text(
-                text = if (revealed) verse.text else "Tap to reveal",
-                style = if (revealed) MaterialTheme.scriptureBody else MaterialTheme.scriptureBody,
+                text = if (revealed) verse.text else hidden,
+                style = MaterialTheme.scriptureBody,
                 color = if (revealed) MaterialTheme.scriptureColor else MaterialTheme.colorScheme.outline,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
 
-        if (revealed) {
-            GradeBar(
-                preview = { grade -> intervalPreview(verse, grade, store.todayEpochDay()) },
-                onGrade = { grade -> store.gradeCurrent(grade, ReviewMode.FLASHCARD) },
-            )
-        } else {
-            PrimaryButton(
-                text = "Show verse",
-                onClick = { revealed = true },
+        if (revealed) answerFooter() else PrimaryButton(
+            text = "Show verse",
+            onClick = { revealed = true },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+/**
+ * The verse text is shown — recall WHERE it's from. Mirrors the flashcard,
+ * with text and reference trading places.
+ */
+@Composable
+internal fun ReverseReview(
+    verse: Verse,
+    answerFooter: @Composable () -> Unit,
+) {
+    var revealed by remember(verse.id) { mutableStateOf(false) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
+        Text(
+            text = "Where is this from?",
+            style = MaterialTheme.label,
+            color = MaterialTheme.colorScheme.outline,
+        )
+
+        ClickableCard(onClick = { revealed = true }) {
+            Text(
+                text = verse.text,
+                style = MaterialTheme.scriptureBody,
+                color = MaterialTheme.scriptureColor,
+                textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
+            if (revealed) {
+                Spacer(Modifier.height(Spacing.md))
+                Text(
+                    text = verse.reference.uppercase(),
+                    style = MaterialTheme.scriptureDisplay,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+
+        if (revealed) answerFooter() else PrimaryButton(
+            text = "Show reference",
+            onClick = { revealed = true },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+/** Type the whole verse from the reference, then see word-by-word matches. */
+@Composable
+internal fun TypedVerseReview(
+    verse: Verse,
+    answerFooter: @Composable () -> Unit,
+) {
+    var typed by remember(verse.id) { mutableStateOf("") }
+    var checked by remember(verse.id) { mutableStateOf(false) }
+    val ink = MaterialTheme.scriptureColor
+    val miss = MaterialTheme.colorScheme.error
+
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+        Text(
+            text = verse.reference.uppercase(),
+            style = MaterialTheme.scriptureDisplay,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        if (!checked) {
+            OutlinedTextField(
+                value = typed,
+                onValueChange = { typed = it },
+                label = { Text("Type the verse from memory") },
+                minLines = 4,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            PrimaryButton(
+                text = "Check",
+                onClick = { checked = true },
+                enabled = typed.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else {
+            val result = checkTypedVerse(verse.text, typed)
+
+            // The expected verse, matched words in ink, misses in red —
+            // the diff IS the answer key.
+            Text(
+                text = buildAnnotatedString {
+                    result.tokens.forEachIndexed { i, token ->
+                        withStyle(SpanStyle(color = if (result.isCorrect[i]) ink else miss)) {
+                            append(if (i == 0) token else " $token")
+                        }
+                    }
+                },
+                style = MaterialTheme.scriptureBody,
+            )
+            Text(
+                text = "${result.matchedCount} of ${result.tokens.size} words matched",
+                style = MaterialTheme.label,
+                color = MaterialTheme.colorScheme.outline,
+            )
+            answerFooter()
         }
     }
 }
 
 /** Type the missing words, check, then grade honestly. */
 @Composable
-private fun FillInBlankReview(store: ScriptureStore, verse: Verse, puzzle: FillInBlank) {
+internal fun FillInBlankReview(
+    verse: Verse,
+    puzzle: FillInBlank,
+    answerFooter: @Composable () -> Unit,
+) {
     val blanks = puzzle.blankedIndexes
-    var answers by remember(verse.id, verse.progress.repetitions) {
+    var answers by remember(verse.id) {
         mutableStateOf(List(blanks.size) { "" })
     }
-    var checked by remember(verse.id, verse.progress.repetitions) { mutableStateOf(false) }
+    var checked by remember(verse.id) { mutableStateOf(false) }
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         Text(
@@ -162,7 +321,7 @@ private fun FillInBlankReview(store: ScriptureStore, verse: Verse, puzzle: FillI
 
         blanks.forEachIndexed { blankIndex, tokenIndex ->
             val actualWord = puzzle.tokens[tokenIndex]
-            val isCorrect = checked && normalize(answers[blankIndex]) == normalize(actualWord)
+            val isCorrect = checked && normalizeWord(answers[blankIndex]) == normalizeWord(actualWord)
 
             OutlinedTextField(
                 value = answers[blankIndex],
@@ -190,10 +349,7 @@ private fun FillInBlankReview(store: ScriptureStore, verse: Verse, puzzle: FillI
                 modifier = Modifier.fillMaxWidth(),
             )
         } else {
-            GradeBar(
-                preview = { grade -> intervalPreview(verse, grade, store.todayEpochDay()) },
-                onGrade = { grade -> store.gradeCurrent(grade, ReviewMode.FILL_IN_BLANK) },
-            )
+            answerFooter()
         }
     }
 }
@@ -204,9 +360,3 @@ private fun intervalPreview(verse: Verse, grade: Grade, today: Long): String {
     val days = (next.dueEpochDay ?: today) - today
     return if (days == 0L) "now" else "${days}d"
 }
-
-/** Compare typed answers leniently: case and surrounding punctuation don't matter. */
-private fun normalize(word: String): String = word
-    .trim()
-    .lowercase()
-    .trim('.', ',', ';', ':', '!', '?', '"', '“', '”', '‘', '’')
