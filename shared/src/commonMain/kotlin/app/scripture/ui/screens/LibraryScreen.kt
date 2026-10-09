@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import app.scripture.ScriptureStore
 import app.scripture.domain.LibraryFilter
+import app.scripture.domain.Verse
 import app.scripture.domain.allTags
 import app.scripture.domain.filterVerses
 import app.scripture.domain.isDue
@@ -35,6 +36,7 @@ import app.scripture.ui.designsystem.Spacing
 import app.scripture.ui.designsystem.TagChip
 import app.scripture.ui.designsystem.VerseCard
 import app.scripture.ui.designsystem.label
+import app.scripture.ui.designsystem.reference
 
 /** Home: the verse library, searchable and tag-filterable, plus review entry. */
 @Composable
@@ -44,6 +46,7 @@ fun LibraryScreen(
     onStartReview: () -> Unit,
     onOpenVerse: (String) -> Unit,
     onImport: () -> Unit,
+    onAbout: () -> Unit,
 ) {
     val verses by store.verses.collectAsState()
     val today = store.todayEpochDay()
@@ -69,6 +72,10 @@ fun LibraryScreen(
                 onClick = onImport,
                 modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
             ) { Text("Import from a file") }
+            OutlinedButton(
+                onClick = onAbout,
+                modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
+            ) { Text("About this app") }
         } else {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -86,6 +93,7 @@ fun LibraryScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     OutlinedButton(onClick = onImport) { Text("Import") }
                     OutlinedButton(onClick = onAddVerse) { Text("Add verse") }
+                    OutlinedButton(onClick = onAbout) { Text("About") }
                 }
             }
 
@@ -132,12 +140,47 @@ fun LibraryScreen(
             if (visible.isEmpty()) {
                 EmptyState("No matches", "Try a different search or clear the filters.")
             } else {
+                val sections = remember(visible) { verseSections(visible) }
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                    items(visible, key = { it.id }) { verse ->
-                        VerseCard(verse, onClick = { onOpenVerse(verse.id) })
+                    sections.forEach { section ->
+                        section.title?.let { title ->
+                            // Keyed by the section's first verse so two runs of
+                            // the same title can't collide in the lazy list.
+                            item(key = "heading-${section.verses.first().id}") {
+                                Text(
+                                    title.uppercase(),
+                                    style = MaterialTheme.reference,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(top = Spacing.sm),
+                                )
+                            }
+                        }
+                        items(section.verses, key = { it.id }) { verse ->
+                            VerseCard(verse, onClick = { onOpenVerse(verse.id) })
+                        }
                     }
                 }
             }
         }
     }
+}
+
+private data class VerseSection(val title: String?, val verses: List<Verse>)
+
+/**
+ * Groups verses into headed runs: consecutive verses that carry the same
+ * collection title (the title of the file they were imported from).
+ * Verses added by hand have no title and sit between runs, unheaded.
+ */
+private fun verseSections(verses: List<Verse>): List<VerseSection> {
+    val sections = mutableListOf<VerseSection>()
+    verses.forEach { verse ->
+        val last = sections.lastOrNull()
+        if (last != null && last.title == verse.collection) {
+            sections[sections.lastIndex] = last.copy(verses = last.verses + verse)
+        } else {
+            sections.add(VerseSection(verse.collection, listOf(verse)))
+        }
+    }
+    return sections
 }

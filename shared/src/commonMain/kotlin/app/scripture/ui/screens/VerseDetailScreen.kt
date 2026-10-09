@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import app.scripture.ScriptureStore
+import app.scripture.domain.ReviewMode
 import app.scripture.ui.designsystem.EmptyState
 import app.scripture.ui.designsystem.PrimaryButton
 import app.scripture.ui.designsystem.ScreenScaffold
@@ -32,7 +33,8 @@ import app.scripture.ui.designsystem.scriptureColor
 
 /**
  * One verse, opened from the library: the full text (the list card truncates
- * to three lines), where its review stands, and the way out — edit or delete.
+ * to three lines), where its review stands, a drill to practice on demand,
+ * and the way out — edit or delete.
  */
 @Composable
 fun VerseDetailScreen(
@@ -40,6 +42,7 @@ fun VerseDetailScreen(
     verseId: String,
     onBack: () -> Unit,
     onEdit: (String) -> Unit,
+    onPractice: (String, ReviewMode) -> Unit,
 ) {
     val verses by store.verses.collectAsState()
     val verse = verses.firstOrNull { it.id == verseId }
@@ -86,6 +89,10 @@ fun VerseDetailScreen(
                     color = MaterialTheme.colorScheme.outline,
                 )
             }
+
+            // Practice never touches the schedule or history — pure reps
+            // for a verse that isn't due yet (or one you just want again).
+            PracticePicker(verse = verse, onPractice = { mode -> onPractice(verse.id, mode) })
 
             PrimaryButton(
                 text = "Edit verse",

@@ -8,11 +8,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import app.scripture.data.VerseRepository
 import app.scripture.data.defaultDataStorage
+import app.scripture.domain.ReviewMode
 import app.scripture.ui.designsystem.ScriptureTheme
+import app.scripture.ui.screens.AboutScreen
 import app.scripture.ui.screens.AddVerseScreen
 import app.scripture.ui.screens.EditVerseScreen
 import app.scripture.ui.screens.ImportScreen
 import app.scripture.ui.screens.LibraryScreen
+import app.scripture.ui.screens.PracticeScreen
 import app.scripture.ui.screens.ReviewScreen
 import app.scripture.ui.screens.VerseDetailScreen
 
@@ -26,8 +29,10 @@ sealed class Screen {
     data object Library : Screen()
     data object AddVerse : Screen()
     data object Import : Screen()
+    data object About : Screen()
     data class VerseDetail(val verseId: String) : Screen()
     data class EditVerse(val verseId: String) : Screen()
+    data class Practice(val verseId: String, val mode: ReviewMode) : Screen()
     data object Review : Screen()
 }
 
@@ -52,7 +57,9 @@ fun App() {
                 },
                 onOpenVerse = { verseId -> screen = Screen.VerseDetail(verseId) },
                 onImport = { screen = Screen.Import },
+                onAbout = { screen = Screen.About },
             )
+            Screen.About -> AboutScreen(onBack = { screen = Screen.Library })
             Screen.AddVerse -> AddVerseScreen(
                 store = store,
                 onDone = { screen = Screen.Library },
@@ -66,7 +73,18 @@ fun App() {
                 verseId = current.verseId,
                 onBack = { screen = Screen.Library },
                 onEdit = { verseId -> screen = Screen.EditVerse(verseId) },
+                onPractice = { verseId, mode -> screen = Screen.Practice(verseId, mode) },
             )
+            is Screen.Practice -> {
+                val verseId = current.verseId
+                PracticeScreen(
+                    store = store,
+                    verseId = verseId,
+                    mode = current.mode,
+                    // Practice exits back to the verse it came from
+                    onExit = { screen = Screen.VerseDetail(verseId) },
+                )
+            }
             is Screen.EditVerse -> {
                 val verseId = current.verseId
                 EditVerseScreen(
