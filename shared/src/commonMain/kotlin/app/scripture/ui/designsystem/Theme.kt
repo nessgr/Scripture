@@ -2,6 +2,7 @@ package app.scripture.ui.designsystem
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
@@ -198,6 +199,12 @@ fun ScriptureTheme(
                 scripture = palette.scripture,
                 hint = palette.onBackground.copy(alpha = 0.62f),
             ),
+            // Text with no explicit color falls back to LocalContentColor, whose
+            // Material3 default is BLACK — unreadable on the dark palette. A root
+            // Surface would provide this; our scaffold paints its own background
+            // instead, so the theme must set it. This is what keeps uncolored
+            // Text (titles, drill labels, empty states) readable in dark mode.
+            LocalContentColor provides palette.onBackground,
         ) {
             content()
         }
