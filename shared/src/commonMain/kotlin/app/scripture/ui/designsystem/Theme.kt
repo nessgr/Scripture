@@ -18,12 +18,12 @@ import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.Font
 import app.scripture.ThemeChoice
 import app.scripture.shared.generated.resources.Res
-import app.scripture.shared.generated.resources.inter_medium
+import app.scripture.shared.generated.resources.inter_italic
 import app.scripture.shared.generated.resources.inter_regular
 import app.scripture.shared.generated.resources.inter_semibold
-import app.scripture.shared.generated.resources.lora_italic
-import app.scripture.shared.generated.resources.lora_regular
-import app.scripture.shared.generated.resources.lora_semibold
+import app.scripture.shared.generated.resources.space_grotesk_medium
+import app.scripture.shared.generated.resources.space_grotesk_regular
+import app.scripture.shared.generated.resources.space_grotesk_semibold
 
 /*
  * DESIGN SYSTEM — the one place the app's look lives.
@@ -106,56 +106,58 @@ val LocalExtendedColors = staticCompositionLocalOf {
 
 /**
  * Bundled fonts (composeResources/font) render identically on Android and
- * desktop — no platform-font roulette. Lora speaks for scripture; Inter for UI.
- * Loading a resource font is a @Composable call, so the families are built
- * here rather than as top-level vals.
+ * desktop — no platform-font roulette. Inter speaks for scripture (clean,
+ * modern, screen-perfect); Space Grotesk for UI (a quirky grotesque that
+ * gives the chrome its own voice). Loading a resource font is a
+ * @Composable call, so the families are built here rather than as
+ * top-level vals.
  */
 @Composable
 private fun scriptureTypography(): Typography {
-    val lora = FontFamily(
-        Font(Res.font.lora_regular, FontWeight.Normal),
-        Font(Res.font.lora_semibold, FontWeight.SemiBold),
-        Font(Res.font.lora_italic, FontWeight.Normal, FontStyle.Italic),
-    )
     val inter = FontFamily(
         Font(Res.font.inter_regular, FontWeight.Normal),
-        Font(Res.font.inter_medium, FontWeight.Medium),
         Font(Res.font.inter_semibold, FontWeight.SemiBold),
+        Font(Res.font.inter_italic, FontWeight.Normal, FontStyle.Italic),
     )
-    return buildTypography(lora, inter)
+    val spaceGrotesk = FontFamily(
+        Font(Res.font.space_grotesk_regular, FontWeight.Normal),
+        Font(Res.font.space_grotesk_medium, FontWeight.Medium),
+        Font(Res.font.space_grotesk_semibold, FontWeight.SemiBold),
+    )
+    return buildTypography(inter, spaceGrotesk)
 }
 
 /** Material has no serif slot, so map the M3 type scale onto our two voices:
  *  scripture (serif) and UI (sans). Named aliases live in Tokens.kt. */
-private fun buildTypography(lora: FontFamily, inter: FontFamily): Typography = Typography(
+private fun buildTypography(scripture: FontFamily, ui: FontFamily): Typography = Typography(
     displayMedium = TextStyle(
-        fontFamily = lora, fontWeight = FontWeight.SemiBold,
+        fontFamily = scripture, fontWeight = FontWeight.SemiBold,
         fontSize = 22.sp, lineHeight = 32.sp,
     ),
     headlineMedium = TextStyle(
         // The drop cap: two body lines tall, so the first letter of a verse
         // opens like an illuminated manuscript.
-        fontFamily = lora, fontWeight = FontWeight.SemiBold,
+        fontFamily = scripture, fontWeight = FontWeight.SemiBold,
         fontSize = 42.sp, lineHeight = 42.sp,
     ),
     bodyLarge = TextStyle(
-        fontFamily = lora, fontWeight = FontWeight.Normal,
+        fontFamily = scripture, fontWeight = FontWeight.Normal,
         fontSize = 18.sp, lineHeight = 30.sp,
     ),
     labelLarge = TextStyle(
-        fontFamily = inter, fontWeight = FontWeight.SemiBold,
+        fontFamily = ui, fontWeight = FontWeight.SemiBold,
         fontSize = 13.sp, lineHeight = 18.sp, letterSpacing = 1.sp,
     ),
     titleLarge = TextStyle(
-        fontFamily = inter, fontWeight = FontWeight.SemiBold,
+        fontFamily = ui, fontWeight = FontWeight.SemiBold,
         fontSize = 17.sp, lineHeight = 24.sp,
     ),
     bodyMedium = TextStyle(
-        fontFamily = inter, fontWeight = FontWeight.Normal,
+        fontFamily = ui, fontWeight = FontWeight.Normal,
         fontSize = 15.sp, lineHeight = 22.sp,
     ),
     labelMedium = TextStyle(
-        fontFamily = inter, fontWeight = FontWeight.Medium,
+        fontFamily = ui, fontWeight = FontWeight.Medium,
         fontSize = 12.sp, lineHeight = 16.sp,
     ),
 )
