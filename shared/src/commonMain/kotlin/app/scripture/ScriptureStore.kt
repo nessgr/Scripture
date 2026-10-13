@@ -10,6 +10,7 @@ import app.scripture.domain.ReviewRecord
 import app.scripture.domain.Verse
 import app.scripture.domain.buildReviewQueue
 import app.scripture.domain.edited
+import app.scripture.domain.migrated
 import app.scripture.domain.nextProgress
 import app.scripture.domain.parseImportText
 import app.scripture.domain.planImport
@@ -55,7 +56,9 @@ class ScriptureStore(private val repository: VerseRepository) {
     /** Call once at startup. Reads the saved document off the UI thread. */
     suspend fun load() {
         val data = withContext(Dispatchers.IO) { repository.load() }
-        _verses.value = data.verses
+        // Files written before the mastery ladder existed carry no stage —
+        // place those verses once, here; the next grade gives them a real one.
+        _verses.value = data.verses.map { it.copy(progress = it.progress.migrated()) }
         history = data.history
     }
 

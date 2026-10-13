@@ -1,5 +1,6 @@
 package app.scripture.domain
 
+import kotlin.math.ceil
 import kotlin.random.Random
 
 /**
@@ -18,26 +19,40 @@ private val STOP_WORDS = setOf(
 )
 
 /**
- * Choose which words to blank out for fill-in-the-blank review.
+ * Choose which words to blank out for cloze review.
+ *
+ * [fraction] is how much of the verse goes blank — 0.3, 0.6, 0.9 as the verse
+ * climbs the ladder. Content words (nouns, verbs) blank first, because they
+ * carry the verse's meaning and grammar can't scaffold them away; function
+ * words only start disappearing once the drill demands most of the verse.
  *
  * Deterministic for a given seed: the same seed always blanks the same words,
  * so one review round is stable, while the next round (new seed) feels fresh.
- * Candidates are real words of 4+ letters; filler words are never blanked.
  */
-fun makeFillInBlank(text: String, seed: Long, maxBlanks: Int = 2): FillInBlank {
+fun makeFillInBlank(text: String, seed: Long, fraction: Double): FillInBlank {
+    if (text.isBlank()) return FillInBlank(emptyList(), emptyList())
     val tokens = text.trim().split(Regex("\\s+"))
 
-    val candidates = tokens.indices.filter { i ->
-        val word = tokens[i]
-            .lowercase()
-            .trim('.', ',', ';', ':', '!', '?', '"', '“', '”', '‘', '’')
-        word.length >= 4 && word.all { it.isLetter() } && word !in STOP_WORDS
-    }
+    val contentWords = tokens.indices.filter { isContentWord(tokens[it]) }
+    val functionWords = tokens.indices.filterNot { it in contentWords }
 
-    val blanked = candidates
-        .shuffled(Random(seed))
-        .take(maxBlanks.coerceAtLeast(0))
-        .sorted()
+    // Blank priority: content words first, then function words — each group
+    // shuffled so the same fraction doesn't always hit the same words.
+    val ranked = contentWords.shuffled(Random(seed)) + functionWords.shuffled(Random(seed + 1))
 
-    return FillInBlank(tokens = tokens, blankedIndexes = blanked)
+    val blankCount = ceil(fraction * tokens.size)
+        .toInt()
+        .coerceIn(0, ranked.size)
+
+    return FillInBlank(
+        tokens = tokens,
+        blankedIndexes = ranked.take(blankCount).sorted(),
+    )
+}
+
+/** A word worth blanking: real letters, long enough to recall, not filler. */
+private fun isContentWord(word: String): Boolean {
+    val bare = word.lowercase()
+        .trim('.', ',', ';', ':', '!', '?', '"', '“', '”', '‘', '’')
+    return bare.length >= 4 && bare.all { it.isLetter() } && bare !in STOP_WORDS
 }

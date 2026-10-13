@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -372,11 +373,15 @@ fun VerseCard(
 /**
  * The four SRS grade buttons with a preview of the interval each choice
  * produces ("Good · 6d"), so the user understands what they're choosing.
+ * [suggested] is the grade the drill's measured accuracy points to — it
+ * gets the accent border, and stays a one-tap confirmation, not an
+ * autopilot: honest self-assessment can always overrule the machine.
  */
 @Composable
 fun GradeBar(
     preview: (app.scripture.domain.Grade) -> String,
     onGrade: (app.scripture.domain.Grade) -> Unit,
+    suggested: app.scripture.domain.Grade? = null,
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -386,6 +391,11 @@ fun GradeBar(
             OutlinedButton(
                 onClick = { onGrade(grade) },
                 shape = MaterialTheme.shapes.medium,
+                border = if (grade == suggested) {
+                    BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                } else {
+                    null // the default outlined border
+                },
                 modifier = Modifier.weight(1f).heightIn(min = 56.dp),
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {

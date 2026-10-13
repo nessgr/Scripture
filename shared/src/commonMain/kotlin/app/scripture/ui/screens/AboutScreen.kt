@@ -57,8 +57,10 @@ fun AboutScreen(onBack: () -> Unit) {
             )
             Text(
                 "A companion for memorizing scripture. The verses you add are " +
-                    "woven into daily review — five drills that ask for more of " +
-                    "each verse as you come to know it, scheduled by spaced repetition.",
+                    "woven into daily review — a ladder of drills that asks for " +
+                    "more of each verse as you come to know it, until you can " +
+                    "type the whole thing from memory, scheduled by spaced " +
+                    "repetition.",
                 style = MaterialTheme.body,
                 color = MaterialTheme.scriptureColor,
             )

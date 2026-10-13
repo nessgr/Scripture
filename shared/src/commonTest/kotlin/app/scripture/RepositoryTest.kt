@@ -6,6 +6,7 @@ import app.scripture.data.VerseRepository
 import app.scripture.domain.Grade
 import app.scripture.domain.ReviewMode
 import app.scripture.domain.ReviewProgress
+import app.scripture.domain.ReviewStage
 import app.scripture.domain.ReviewRecord
 import app.scripture.domain.Verse
 import kotlin.test.Test
@@ -59,6 +60,51 @@ class RepositoryTest {
         assertEquals(1, loaded.verses.size)
         assertEquals(ReviewProgress(), loaded.verses.first().progress)
         assertEquals(emptyList(), loaded.verses.first().tags)
+    }
+
+    @Test
+    fun ladderStageRoundTrips() {
+        val storage = InMemoryDataStorage()
+        val data = ScriptureData(
+            verses = listOf(
+                Verse(
+                    id = "id-2",
+                    reference = "Isaiah 25:8",
+                    text = "He will destroy death forever…",
+                    createdEpochDay = 20_000,
+                    progress = ReviewProgress(stage = ReviewStage.CLOZE_90),
+                ),
+            ),
+        )
+
+        VerseRepository(storage).save(data)
+
+        assertEquals(
+            ReviewStage.CLOZE_90,
+            VerseRepository(storage).load().verses.single().progress.stage,
+        )
+    }
+
+    @Test
+    fun preLadderFilesLoadWithANullStage() {
+        // A file written before the ladder existed has progress but no
+        // `stage` — null is the marker the store migrates from.
+        val preLadderJson = """
+            {
+              "verses": [
+                { "id": "old-2", "reference": "John 3:16", "text": "For God loved the world…",
+                  "createdEpochDay": 19000,
+                  "progress": { "repetitions": 3, "easiness": 2.5, "intervalDays": 15, "dueEpochDay": 19020 } }
+              ],
+              "history": []
+            }
+        """.trimIndent()
+
+        val storage = InMemoryDataStorage().apply { write(dataFile, preLadderJson) }
+        val progress = VerseRepository(storage).load().verses.single().progress
+
+        assertEquals(null, progress.stage)
+        assertEquals(3, progress.repetitions)
     }
 
     @Test

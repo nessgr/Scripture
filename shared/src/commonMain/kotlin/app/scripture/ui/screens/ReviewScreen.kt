@@ -2,11 +2,14 @@ package app.scripture.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,33 +23,42 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
 import app.scripture.ScriptureStore
 import app.scripture.domain.FillInBlank
 import app.scripture.domain.Grade
 import app.scripture.domain.ReviewMode
+import app.scripture.domain.ReviewStage
+import app.scripture.domain.TypedVerseCheck
 import app.scripture.domain.Verse
+import app.scripture.domain.WordStatus
+import app.scripture.domain.checkCloze
 import app.scripture.domain.checkTypedVerse
+import app.scripture.domain.clozeFraction
 import app.scripture.domain.firstLetters
 import app.scripture.domain.makeFillInBlank
-import app.scripture.domain.maxBlanksFor
 import app.scripture.domain.nextProgress
-import app.scripture.domain.normalizeWord
-import app.scripture.domain.reviewModeFor
+import app.scripture.domain.suggestGrade
 import app.scripture.ui.designsystem.ClickableCard
 import app.scripture.ui.designsystem.EmptyState
 import app.scripture.ui.designsystem.GradeBar
 import app.scripture.ui.designsystem.PrimaryButton
 import app.scripture.ui.designsystem.ScreenScaffold
 import app.scripture.ui.designsystem.Spacing
+import app.scripture.ui.designsystem.body
+import app.scripture.ui.designsystem.gradeLabel
 import app.scripture.ui.designsystem.hintColor
 import app.scripture.ui.designsystem.label
+import app.scripture.ui.designsystem.nearMissColor
 import app.scripture.ui.designsystem.scriptureBody
 import app.scripture.ui.designsystem.scriptureColor
 import app.scripture.ui.designsystem.scriptureDisplay
 
 /**
- * A review session: five drills rotate by how well the verse is already
- * known (see domain/Drills.kt), each graded with the SRS buttons.
+ * A review session: each verse drills at its rung on the mastery ladder
+ * (see domain/Drills.kt) — the better it's known, the more of it the drill
+ * asks for. Typed drills measure accuracy and suggest the honest grade;
+ * reveal drills ask for an attempt before they show the answer.
  */
 @Composable
 fun ReviewScreen(
@@ -66,45 +78,45 @@ fun ReviewScreen(
         if (current == null) {
             SessionSummary(onExit = onExit)
         } else {
-            // Which drill this review gets: the rotation asks for more of
-            // the verse each round the user remembers it.
-            when (reviewModeFor(current.progress.repetitions)) {
-                ReviewMode.FLASHCARD -> RecallReview(
-                    verse = current,
-                    hint = "recall it first",
-                    hidden = "Tap to reveal",
-                ) { GradeFooter(store, current, ReviewMode.FLASHCARD) }
-                ReviewMode.FILL_IN_BLANK -> {
+            // Which drill this review gets: the verse's rung on the ladder.
+            // Null cannot occur after load's migration, but the fallback keeps
+            // a never-loaded verse from crashing a review.
+            val stage = current.progress.stage ?: ReviewStage.READ
+            when (stage) {
+                ReviewStage.READ -> RecallReview(verse = current) { suggested ->
+                    GradeFooter(store, current, ReviewMode.FLASHCARD, suggested)
+                }
+
+                ReviewStage.CLOZE_30, ReviewStage.CLOZE_60, ReviewStage.CLOZE_90 -> {
                     val puzzle = remember(current.id, current.progress.repetitions) {
                         makeFillInBlank(
                             current.text,
                             seed = current.id.hashCode().toLong() xor current.progress.repetitions.toLong(),
-                            maxBlanks = maxBlanksFor(current.progress.repetitions),
+                            fraction = clozeFraction(stage),
                         )
                     }
                     // A verse too short to blank out falls back to a reveal.
                     if (puzzle.blankedIndexes.isEmpty()) {
-                        RecallReview(
-                            verse = current,
-                            hint = "recall it first",
-                            hidden = "Tap to reveal",
-                        ) { GradeFooter(store, current, ReviewMode.FLASHCARD) }
+                        RecallReview(verse = current) { suggested ->
+                            GradeFooter(store, current, ReviewMode.FLASHCARD, suggested)
+                        }
                     } else {
-                        FillInBlankReview(verse = current, puzzle = puzzle) {
-                            GradeFooter(store, current, ReviewMode.FILL_IN_BLANK)
+                        ClozeReview(verse = current, puzzle = puzzle) { suggested ->
+                            GradeFooter(store, current, ReviewMode.FILL_IN_BLANK, suggested)
                         }
                     }
                 }
-                ReviewMode.FIRST_LETTERS -> RecallReview(
-                    verse = current,
-                    hint = "say it from the first letters",
-                    hidden = firstLetters(current.text),
-                ) { GradeFooter(store, current, ReviewMode.FIRST_LETTERS) }
-                ReviewMode.REVERSE -> ReverseReview(verse = current) {
-                    GradeFooter(store, current, ReviewMode.REVERSE)
+
+                ReviewStage.FIRST_LETTERS -> FirstLettersTypedReview(verse = current) { suggested ->
+                    GradeFooter(store, current, ReviewMode.FIRST_LETTERS, suggested)
                 }
-                ReviewMode.TYPE_WHOLE -> TypedVerseReview(verse = current) {
-                    GradeFooter(store, current, ReviewMode.TYPE_WHOLE)
+
+                ReviewStage.REVERSE -> ReverseReview(verse = current) { suggested ->
+                    GradeFooter(store, current, ReviewMode.REVERSE, suggested)
+                }
+
+                ReviewStage.FULL_RECALL -> TypedVerseReview(verse = current) { suggested ->
+                    GradeFooter(store, current, ReviewMode.TYPE_WHOLE, suggested)
                 }
             }
         }
@@ -126,34 +138,43 @@ private fun SessionSummary(onExit: () -> Unit) {
     }
 }
 
-/** The SRS grade bar — review's footer of choice: grading reschedules the verse. */
+/**
+ * The SRS grade bar — review's footer of choice: grading reschedules the
+ * verse and moves it along the ladder. [suggested] highlights the grade the
+ * drill itself measured or the attempt the user reported.
+ */
 @Composable
-private fun GradeFooter(store: ScriptureStore, verse: Verse, mode: ReviewMode) {
+private fun GradeFooter(
+    store: ScriptureStore,
+    verse: Verse,
+    mode: ReviewMode,
+    suggested: Grade?,
+) {
     GradeBar(
         preview = { grade -> intervalPreview(verse, grade, store.todayEpochDay()) },
         onGrade = { grade -> store.gradeCurrent(grade, mode) },
+        suggested = suggested,
     )
 }
 
 /**
- * The reveal drill: reference up top, [hidden] standing in for the verse
- * ("Tap to reveal", or the first letters), then the full text. Serves both
- * the flashcard and the first-letters drill — they differ only in the prompt.
- * The [answerFooter] slot is what shows once the answer is out; review puts
- * the grade bar there, practice puts its own buttons.
+ * The reveal drill at the bottom of the ladder: reference shown, recall the
+ * text — and the gate makes the attempt explicit. "I said it" and "Couldn't
+ * recall" both reveal the verse; they differ only in the grade they suggest,
+ * because effortful retrieval — not re-reading — is what builds memory.
+ * Tapping the card itself reveals without a reported attempt.
  */
 @Composable
 internal fun RecallReview(
     verse: Verse,
-    hint: String,
-    hidden: String,
-    answerFooter: @Composable () -> Unit,
+    answerFooter: @Composable (Grade?) -> Unit,
 ) {
     var revealed by remember(verse.id) { mutableStateOf(false) }
+    var suggested by remember(verse.id) { mutableStateOf<Grade?>(null) }
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
         Text(
-            text = "${verse.reference.uppercase()} — $hint",
+            text = "${verse.reference.uppercase()} — recall it first",
             style = MaterialTheme.label,
             color = MaterialTheme.hintColor,
         )
@@ -168,7 +189,7 @@ internal fun RecallReview(
             )
             Spacer(Modifier.height(Spacing.md))
             Text(
-                text = if (revealed) verse.text else hidden,
+                text = if (revealed) verse.text else "Tap to reveal",
                 style = MaterialTheme.scriptureBody,
                 color = if (revealed) MaterialTheme.scriptureColor else MaterialTheme.hintColor,
                 textAlign = TextAlign.Center,
@@ -176,24 +197,35 @@ internal fun RecallReview(
             )
         }
 
-        if (revealed) answerFooter() else PrimaryButton(
-            text = "Show verse",
-            onClick = { revealed = true },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        if (revealed) {
+            answerFooter(suggested)
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                PrimaryButton(
+                    text = "I said it",
+                    onClick = { suggested = Grade.GOOD; revealed = true },
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedButton(
+                    onClick = { suggested = Grade.AGAIN; revealed = true },
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                ) { Text("Couldn't recall", style = MaterialTheme.body) }
+            }
+        }
     }
 }
 
 /**
- * The verse text is shown — recall WHERE it's from. Mirrors the flashcard,
- * with text and reference trading places.
+ * The verse text is shown — recall WHERE it's from. Same retrieval gate as
+ * the flashcard, with the report button wording turned around.
  */
 @Composable
 internal fun ReverseReview(
     verse: Verse,
-    answerFooter: @Composable () -> Unit,
+    answerFooter: @Composable (Grade?) -> Unit,
 ) {
     var revealed by remember(verse.id) { mutableStateOf(false) }
+    var suggested by remember(verse.id) { mutableStateOf<Grade?>(null) }
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
         Text(
@@ -222,24 +254,32 @@ internal fun ReverseReview(
             }
         }
 
-        if (revealed) answerFooter() else PrimaryButton(
-            text = "Show reference",
-            onClick = { revealed = true },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        if (revealed) {
+            answerFooter(suggested)
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                PrimaryButton(
+                    text = "I knew it",
+                    onClick = { suggested = Grade.GOOD; revealed = true },
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedButton(
+                    onClick = { suggested = Grade.AGAIN; revealed = true },
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                ) { Text("Didn't know", style = MaterialTheme.body) }
+            }
+        }
     }
 }
 
-/** Type the whole verse from the reference, then see word-by-word matches. */
+/** Type the verse from the reference alone — the top of the ladder. */
 @Composable
 internal fun TypedVerseReview(
     verse: Verse,
-    answerFooter: @Composable () -> Unit,
+    answerFooter: @Composable (Grade?) -> Unit,
 ) {
     var typed by remember(verse.id) { mutableStateOf("") }
     var checked by remember(verse.id) { mutableStateOf(false) }
-    val ink = MaterialTheme.scriptureColor
-    val miss = MaterialTheme.colorScheme.error
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         Text(
@@ -256,6 +296,7 @@ internal fun TypedVerseReview(
                 onValueChange = { typed = it },
                 label = { Text("Type the verse from memory") },
                 minLines = 4,
+                keyboardOptions = KeyboardOptions(autoCorrect = false),
                 modifier = Modifier.fillMaxWidth(),
             )
             PrimaryButton(
@@ -266,40 +307,81 @@ internal fun TypedVerseReview(
             )
         } else {
             val result = checkTypedVerse(verse.text, typed)
-
-            // The expected verse, matched words in ink, misses in red —
-            // the diff IS the answer key.
-            Text(
-                text = buildAnnotatedString {
-                    result.tokens.forEachIndexed { i, token ->
-                        withStyle(SpanStyle(color = if (result.isCorrect[i]) ink else miss)) {
-                            append(if (i == 0) token else " $token")
-                        }
-                    }
-                },
-                style = MaterialTheme.scriptureBody,
-            )
-            Text(
-                text = "${result.matchedCount} of ${result.tokens.size} words matched",
-                style = MaterialTheme.label,
-                color = MaterialTheme.hintColor,
-            )
-            answerFooter()
+            TypedDiff(result.tokens, result.statuses)
+            DiffSummary(result)
+            answerFooter(suggestGrade(result.accuracy))
         }
     }
 }
 
-/** Type the missing words, check, then grade honestly. */
+/**
+ * The first-letters drill: the verse as initials, then typed in full —
+ * the bridge between cloze and free recall. The initials cue the memory;
+ * typing the whole verse is still the retrieval effort.
+ */
 @Composable
-internal fun FillInBlankReview(
+internal fun FirstLettersTypedReview(
+    verse: Verse,
+    answerFooter: @Composable (Grade?) -> Unit,
+) {
+    var typed by remember(verse.id) { mutableStateOf("") }
+    var checked by remember(verse.id) { mutableStateOf(false) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+        Text(
+            text = verse.reference.uppercase(),
+            style = MaterialTheme.scriptureDisplay,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        // The cue: initials only, quiet enough to lean on, too sparse to read.
+        Text(
+            text = firstLetters(verse.text),
+            style = MaterialTheme.scriptureBody,
+            color = MaterialTheme.hintColor,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        if (!checked) {
+            OutlinedTextField(
+                value = typed,
+                onValueChange = { typed = it },
+                label = { Text("Say it back — type the verse") },
+                minLines = 4,
+                keyboardOptions = KeyboardOptions(autoCorrect = false),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            PrimaryButton(
+                text = "Check",
+                onClick = { checked = true },
+                enabled = typed.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else {
+            val result = checkTypedVerse(verse.text, typed)
+            TypedDiff(result.tokens, result.statuses)
+            DiffSummary(result)
+            answerFooter(suggestGrade(result.accuracy))
+        }
+    }
+}
+
+/**
+ * Cloze: the verse with a fraction of its words blanked, typed back in
+ * order. One input for however many blanks — a 90% blank is the same
+ * gesture as a 30% blank, and both grow toward typing the whole verse.
+ */
+@Composable
+internal fun ClozeReview(
     verse: Verse,
     puzzle: FillInBlank,
-    answerFooter: @Composable () -> Unit,
+    answerFooter: @Composable (Grade?) -> Unit,
 ) {
     val blanks = puzzle.blankedIndexes
-    var answers by remember(verse.id) {
-        mutableStateOf(List(blanks.size) { "" })
-    }
+    var typed by remember(verse.id) { mutableStateOf("") }
     var checked by remember(verse.id) { mutableStateOf(false) }
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
@@ -320,39 +402,79 @@ internal fun FillInBlankReview(
             color = MaterialTheme.scriptureColor,
         )
 
-        blanks.forEachIndexed { blankIndex, tokenIndex ->
-            val actualWord = puzzle.tokens[tokenIndex]
-            val isCorrect = checked && normalizeWord(answers[blankIndex]) == normalizeWord(actualWord)
-
+        if (!checked) {
             OutlinedTextField(
-                value = answers[blankIndex],
-                onValueChange = { value ->
-                    if (!checked) answers = answers.toMutableList().also { it[blankIndex] = value }
-                },
-                label = { Text("Missing word ${blankIndex + 1}") },
-                supportingText = {
-                    if (checked) {
-                        Text(if (isCorrect) "✓ $actualWord" else "✗ ${puzzle.tokens[tokenIndex]}")
-                    }
-                },
-                isError = checked && !isCorrect,
-                singleLine = true,
+                value = typed,
+                onValueChange = { typed = it },
+                label = { Text("Type the missing words, in order") },
+                minLines = 2,
                 keyboardOptions = KeyboardOptions(autoCorrect = false),
                 modifier = Modifier.fillMaxWidth(),
             )
-        }
-
-        if (!checked) {
             PrimaryButton(
                 text = "Check",
                 onClick = { checked = true },
-                enabled = answers.all { it.isNotBlank() },
+                enabled = typed.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
             )
         } else {
-            answerFooter()
+            val result = checkCloze(puzzle, typed)
+
+            // The expected verse with the blanks filled back in, colored by
+            // the verdict — the diff IS the answer key. Words that stayed
+            // on the page were never tested, so they read as plain ink.
+            val blankStatuses = blanks.withIndex().associate { (k, index) -> index to result.statuses[k] }
+            TypedDiff(
+                tokens = puzzle.tokens,
+                statuses = puzzle.tokens.indices.map { blankStatuses[it] ?: WordStatus.CORRECT },
+            )
+            DiffSummary(result)
+            answerFooter(suggestGrade(result.accuracy))
         }
     }
+}
+
+/** The expected verse, each word colored by what the typist did with it. */
+@Composable
+internal fun TypedDiff(tokens: List<String>, statuses: List<WordStatus>) {
+    val ink = MaterialTheme.scriptureColor
+    val amber = MaterialTheme.nearMissColor
+    val miss = MaterialTheme.colorScheme.error
+    Text(
+        text = buildAnnotatedString {
+            tokens.forEachIndexed { i, token ->
+                val color = when (statuses[i]) {
+                    WordStatus.CORRECT -> ink
+                    WordStatus.NEAR -> amber
+                    WordStatus.WRONG -> miss
+                }
+                withStyle(SpanStyle(color = color)) {
+                    append(if (i == 0) token else " $token")
+                }
+            }
+        },
+        style = MaterialTheme.scriptureBody,
+    )
+}
+
+/** "17 of 20 words right, 1 near-miss · suggested: Good" — the score line. */
+@Composable
+private fun DiffSummary(result: TypedVerseCheck) {
+    val right = result.statuses.count { it == WordStatus.CORRECT }
+    val near = result.statuses.count { it == WordStatus.NEAR }
+    val suggested = suggestGrade(result.accuracy)
+    val text = buildString {
+        append("$right of ${result.tokens.size} words right")
+        if (near > 0) {
+            append(if (near == 1) ", 1 near-miss" else ", $near near-misses")
+        }
+        append(" · suggested: ${gradeLabel.getValue(suggested)}")
+    }
+    Text(
+        text = text,
+        style = MaterialTheme.label,
+        color = MaterialTheme.hintColor,
+    )
 }
 
 /** "now", "1d", "6d"… — what choosing this grade would mean. */

@@ -61,6 +61,10 @@ val MaterialTheme.scriptureColor: Color
 val MaterialTheme.hintColor: Color
     @Composable get() = LocalExtendedColors.current.hint
 
+/** Ochre for near-miss words in a typed diff — right word, rough edges. */
+val MaterialTheme.nearMissColor: Color
+    @Composable get() = LocalExtendedColors.current.nearMiss
+
 /**
  * The app's signature silhouette: an arch — tall radius overhead, quiet
  * footing below, like a window in an illuminated manuscript. Cards wear

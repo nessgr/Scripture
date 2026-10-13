@@ -46,6 +46,8 @@ data class Palette(
     val outline: Color,
     /** Deep "printed ink" color for scripture text — extends Material's roles. */
     val scripture: Color,
+    /** Readable ochre for near-miss words in a typed diff — "so close". */
+    val nearMiss: Color,
 )
 
 private val LightPalette = Palette(
@@ -58,6 +60,7 @@ private val LightPalette = Palette(
     surfaceVariant = Color(0xFFEFEEE8),
     outline = Color(0xFFD8D6CE),
     scripture = Color(0xFF23221D),
+    nearMiss = Color(0xFF946B2D),
 )
 
 private val DarkPalette = Palette(
@@ -70,6 +73,7 @@ private val DarkPalette = Palette(
     surfaceVariant = Color(0xFF242622),
     outline = Color(0xFF4A4D47),      // borders only — still quiet, but OutlinedButtons read
     scripture = Color(0xFFDCDAD2),
+    nearMiss = Color(0xFFD9B36A),
 )
 
 private fun scheme(p: Palette): ColorScheme = lightColorScheme(
@@ -96,12 +100,14 @@ private fun scheme(p: Palette): ColorScheme = lightColorScheme(
 data class ExtendedColors(
     val scripture: Color,
     val hint: Color,
+    val nearMiss: Color,
 )
 
 val LocalExtendedColors = staticCompositionLocalOf {
     ExtendedColors(
         scripture = LightPalette.scripture,
         hint = LightPalette.onBackground.copy(alpha = 0.62f),
+        nearMiss = LightPalette.nearMiss,
     )
 }
 
@@ -198,6 +204,7 @@ fun ScriptureTheme(
             LocalExtendedColors provides ExtendedColors(
                 scripture = palette.scripture,
                 hint = palette.onBackground.copy(alpha = 0.62f),
+                nearMiss = palette.nearMiss,
             ),
             // Text with no explicit color falls back to LocalContentColor, whose
             // Material3 default is BLACK — unreadable on the dark palette. A root

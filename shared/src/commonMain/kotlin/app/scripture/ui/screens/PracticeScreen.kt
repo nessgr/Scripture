@@ -18,10 +18,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import app.scripture.ScriptureStore
 import app.scripture.domain.ReviewMode
+import app.scripture.domain.ReviewStage
 import app.scripture.domain.Verse
-import app.scripture.domain.firstLetters
+import app.scripture.domain.clozeFraction
 import app.scripture.domain.makeFillInBlank
-import app.scripture.domain.maxBlanksFor
+import app.scripture.domain.reviewModeFor
 import app.scripture.ui.designsystem.ChoiceRow
 import app.scripture.ui.designsystem.EmptyState
 import app.scripture.ui.designsystem.PrimaryButton
@@ -33,8 +34,8 @@ import app.scripture.ui.designsystem.drillLabel
  * One verse, one drill, on demand — chosen from the verse's detail screen.
  * Pure exercise: nothing is graded, scheduled, or written to history, which
  * is the whole point — practice never disturbs the spaced-repetition plan.
- * "Practice again" reruns the drill with a fresh round number, so
- * fill-in-the-blank reshuffles its blanks.
+ * "Practice again" reruns the drill with a fresh round number, so cloze
+ * reshuffles its blanks.
  */
 @Composable
 fun PracticeScreen(
@@ -53,51 +54,46 @@ fun PracticeScreen(
             return@ScreenScaffold
         }
 
+        val footer: @Composable (app.scripture.domain.Grade?) -> Unit = {
+            PracticeFooter(onAgain = { round++ }, onDone = onExit)
+        }
+
         // Keyed by round: "Practice again" restarts the drill with fresh
         // reveal/answer state and a newly shuffled puzzle.
         key(round) {
             when (mode) {
-                ReviewMode.FLASHCARD -> RecallReview(
-                    verse = verse,
-                    hint = "recall it first",
-                    hidden = "Tap to reveal",
-                ) { PracticeFooter(onAgain = { round++ }, onDone = onExit) }
+                ReviewMode.FLASHCARD -> RecallReview(verse = verse, answerFooter = footer)
 
                 ReviewMode.FILL_IN_BLANK -> {
+                    // Practice at the verse's own rung when it's on a cloze
+                    // rung; otherwise a mid-ladder workout.
+                    val stage = verse.progress.stage ?: ReviewStage.READ
+                    val fraction = clozeFraction(stage).let { if (it > 0.0) it else 0.6 }
                     val puzzle = remember(verse.id, round) {
                         makeFillInBlank(
                             verse.text,
                             seed = verse.id.hashCode().toLong() xor round.toLong(),
-                            maxBlanks = maxBlanksFor(verse.progress.repetitions),
+                            fraction = fraction,
                         )
                     }
                     // A verse too short to blank out falls back to a reveal.
                     if (puzzle.blankedIndexes.isEmpty()) {
-                        RecallReview(
-                            verse = verse,
-                            hint = "recall it first",
-                            hidden = "Tap to reveal",
-                        ) { PracticeFooter(onAgain = { round++ }, onDone = onExit) }
+                        RecallReview(verse = verse, answerFooter = footer)
                     } else {
-                        FillInBlankReview(verse = verse, puzzle = puzzle) { PracticeFooter(onAgain = { round++ }, onDone = onExit) }
+                        ClozeReview(verse = verse, puzzle = puzzle, answerFooter = footer)
                     }
                 }
 
-                ReviewMode.FIRST_LETTERS -> RecallReview(
-                    verse = verse,
-                    hint = "say it from the first letters",
-                    hidden = firstLetters(verse.text),
-                ) { PracticeFooter(onAgain = { round++ }, onDone = onExit) }
-
-                ReviewMode.REVERSE -> ReverseReview(verse = verse) { PracticeFooter(onAgain = { round++ }, onDone = onExit) }
-
-                ReviewMode.TYPE_WHOLE -> TypedVerseReview(verse = verse) { PracticeFooter(onAgain = { round++ }, onDone = onExit) }
+                ReviewMode.FIRST_LETTERS -> FirstLettersTypedReview(verse = verse, answerFooter = footer)
+                ReviewMode.REVERSE -> ReverseReview(verse = verse, answerFooter = footer)
+                ReviewMode.TYPE_WHOLE -> TypedVerseReview(verse = verse, answerFooter = footer)
             }
         }
     }
 }
 
-/** Practice's answer footer: run it again, or be done. No grades here. */
+/** Practice's answer footer: run it again, or be done. No grades here —
+ *  the suggested grade a drill computes is practice's to ignore. */
 @Composable
 private fun PracticeFooter(onAgain: () -> Unit, onDone: () -> Unit) {
     Column(
@@ -111,12 +107,12 @@ private fun PracticeFooter(onAgain: () -> Unit, onDone: () -> Unit) {
 
 /**
  * The verse detail screen's practice picker: a radio row per drill with the
- * verse's natural next drill preselected, and the button that launches it.
+ * verse's current ladder drill preselected, and the button that launches it.
  */
 @Composable
 fun PracticePicker(verse: Verse, onPractice: (ReviewMode) -> Unit) {
     var chosen by remember(verse.id) {
-        mutableStateOf(app.scripture.domain.reviewModeFor(verse.progress.repetitions))
+        mutableStateOf(reviewModeFor(verse.progress.stage ?: ReviewStage.READ))
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {

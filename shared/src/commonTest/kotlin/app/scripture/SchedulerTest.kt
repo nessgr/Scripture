@@ -2,6 +2,7 @@ package app.scripture
 
 import app.scripture.domain.Grade
 import app.scripture.domain.ReviewProgress
+import app.scripture.domain.ReviewStage
 import app.scripture.domain.Verse
 import app.scripture.domain.buildReviewQueue
 import app.scripture.domain.isDue
@@ -74,6 +75,54 @@ class SchedulerTest {
         val after = nextProgress(learned, Grade.HARD, today)
         assertEquals(12, after.intervalDays) // 10 × 1.2
         assertEquals(today + 12, after.dueEpochDay)
+    }
+
+    // ---- the drill ladder rides along ----
+
+    @Test
+    fun gradingClimbsTheDrillLadderToo() {
+        val after = nextProgress(
+            ReviewProgress(stage = ReviewStage.READ),
+            Grade.GOOD,
+            today,
+        )
+        assertEquals(ReviewStage.CLOZE_30, after.stage)
+    }
+
+    @Test
+    fun againDropsTheDrillOneRung() {
+        val after = nextProgress(
+            ReviewProgress(stage = ReviewStage.CLOZE_90),
+            Grade.AGAIN,
+            today,
+        )
+        assertEquals(ReviewStage.CLOZE_60, after.stage)
+    }
+
+    @Test
+    fun hardHoldsTheDrillRung() {
+        val after = nextProgress(
+            ReviewProgress(stage = ReviewStage.FIRST_LETTERS),
+            Grade.HARD,
+            today,
+        )
+        assertEquals(ReviewStage.FIRST_LETTERS, after.stage)
+    }
+
+    @Test
+    fun fullRecallIsWhereTheLadderRests() {
+        val after = nextProgress(
+            ReviewProgress(stage = ReviewStage.FULL_RECALL),
+            Grade.GOOD,
+            today,
+        )
+        assertEquals(ReviewStage.FULL_RECALL, after.stage)
+    }
+
+    @Test
+    fun aVerseNeverPlacedOnTheLadderStartsAtRead() {
+        val after = nextProgress(ReviewProgress(), Grade.GOOD, today)
+        assertEquals(ReviewStage.CLOZE_30, after.stage)
     }
 
     @Test
