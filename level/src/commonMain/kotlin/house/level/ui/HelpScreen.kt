@@ -14,14 +14,16 @@ import house.design.inkColor
 import house.design.label
 import house.design.readingDisplay
 import house.design.title
+import house.level.SettingsStore
 
 /**
  * The help and about page: how to read the instrument, how the rise
  * calculator turns tilt into lift, the display settings (large text, and
  * the OS magnifiers that work everywhere), and what this app promises.
+ * The remembered settings flow in from [settings].
  */
 @Composable
-fun HelpScreen(onBack: () -> Unit, largeText: Boolean, onLargeText: (Boolean) -> Unit) {
+fun HelpScreen(settings: SettingsStore, onBack: () -> Unit) {
     ScreenScaffold(title = "Help", onBack = onBack, scrollable = true) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
             Text(
@@ -56,8 +58,8 @@ fun HelpScreen(onBack: () -> Unit, largeText: Boolean, onLargeText: (Boolean) ->
             )
             ChoiceRow(
                 label = "Large text",
-                selected = largeText,
-                onClick = { onLargeText(!largeText) },
+                selected = settings.largeText,
+                onClick = { settings.setLargeText(!settings.largeText) },
             )
             Text(
                 "Your device's own magnifier works here too: triple-tap the " +

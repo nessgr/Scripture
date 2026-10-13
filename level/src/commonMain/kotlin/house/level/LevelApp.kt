@@ -1,12 +1,13 @@
 package house.level
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import house.design.HouseTheme
-import house.design.ThemeChoice
+import house.level.data.defaultDataStorage
 import house.level.ui.HelpScreen
 import house.level.ui.LevelScreen
 
@@ -16,26 +17,26 @@ private enum class LevelPage { Instrument, Help }
 /**
  * The Level app: the phone as a spirit level — two vials at right angles,
  * a bullseye in the middle, zero calibration, and a rise calculator that
- * turns tilt into how much to lift. Large text (the house accessibility
- * mode) grows every reading; the setting lives on the help page.
+ * turns tilt into how much to lift. One DataStorage feeds the settings
+ * store (theme, large text, run, units) and the level store's persisted
+ * zero; both are plain files per platform, remembered across launches.
  */
 @Composable
 fun LevelApp() {
-    var choice by remember { mutableStateOf(ThemeChoice.SYSTEM) }
-    var largeText by remember { mutableStateOf(false) }
+    val storage = remember { defaultDataStorage() }
+    val settings = remember { SettingsStore(storage) }
+    val current by settings.settings.collectAsState()
     var page by remember { mutableStateOf(LevelPage.Instrument) }
-    HouseTheme(choice = choice, largeText = largeText) {
+    HouseTheme(choice = settings.choice, largeText = current.largeText) {
         when (page) {
             LevelPage.Instrument -> LevelScreen(
-                choice = choice,
-                onChoice = { choice = it },
+                settings = settings,
+                storage = storage,
                 onHelp = { page = LevelPage.Help },
-                largeText = largeText,
             )
             LevelPage.Help -> HelpScreen(
+                settings = settings,
                 onBack = { page = LevelPage.Instrument },
-                largeText = largeText,
-                onLargeText = { largeText = it },
             )
         }
     }

@@ -29,7 +29,6 @@ import house.design.PrimaryButton
 import house.design.ScreenScaffold
 import house.design.Spacing
 import house.design.TagChip
-import house.design.ThemeChoice
 import house.design.ThemeToggle
 import house.design.emberColor
 import house.design.hintColor
@@ -37,6 +36,8 @@ import house.design.inkColor
 import house.design.readingDisplay
 import house.design.reference
 import house.level.LevelStore
+import house.level.SettingsStore
+import house.level.data.DataStorage
 import house.level.data.defaultTiltSource
 import house.level.domain.LengthUnits
 import house.level.domain.Tilt
@@ -48,22 +49,20 @@ import house.level.domain.runFromText
 /**
  * The instrument screen: the level square (vials engraved with degrees
  * and rise) and the calculator's control row. Tilt arrives from the store;
- * drawing stays in LevelDrawing.kt, controls live here. [choice]/
- * [onChoice] are the theme toggle in the scaffold's title row, [onHelp]
- * opens the help page, and [largeText] (the house accessibility mode)
- * swaps the vials' rise line for a big degrees-and-rise bar.
+ * drawing stays in LevelDrawing.kt, controls live here. The remembered
+ * preferences (theme, large text, run, units) flow in from [settings];
+ * [storage] lets the level store persist its zero. [onHelp] opens the
+ * help page. Large text (the house accessibility mode) swaps the vials'
+ * rise line for a big degrees-and-rise bar.
  */
 @Composable
-fun LevelScreen(choice: ThemeChoice, onChoice: (ThemeChoice) -> Unit, onHelp: () -> Unit, largeText: Boolean) {
+fun LevelScreen(settings: SettingsStore, storage: DataStorage, onHelp: () -> Unit) {
     val source = remember { defaultTiltSource() }
-    val store = remember { LevelStore(source) }
+    val store = remember { LevelStore(source, storage) }
     val tilt by store.tilt.collectAsState()
     val zero by store.zero.collectAsState()
-    // The run is shared: the rise row reads it, and so do the vials. It
-    // starts at 0 so the rise engraving is there from the first tilt.
-    var runText by remember { mutableStateOf("0") }
-    var units by remember { mutableStateOf(LengthUnits.FEET) }
-    val run = runFromText(runText)
+    val current by settings.settings.collectAsState()
+    val run = runFromText(current.runText)
 
     ScreenScaffold(
         title = "Level",
@@ -75,20 +74,20 @@ fun LevelScreen(choice: ThemeChoice, onChoice: (ThemeChoice) -> Unit, onHelp: ()
                 OutlinedButton(onClick = onHelp) {
                     Text("Help", style = MaterialTheme.reference)
                 }
-                ThemeToggle(choice = choice, onChoice = onChoice)
+                ThemeToggle(choice = settings.choice, onChoice = { settings.setChoice(it) })
             }
         },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-            LevelSquare(source, tilt, run, units, largeText)
-            if (largeText) BigReadouts(tilt, run, units)
+            LevelSquare(source, tilt, run, settings.units, current.largeText)
+            if (current.largeText) BigReadouts(tilt, run, settings.units)
             RiseSection(
                 tilt = tilt,
                 zero = zero,
-                runText = runText,
-                onRunText = { text -> runText = text.filter { it.isDigit() || it == '.' } },
-                units = units,
-                onUnits = { units = it },
+                runText = current.runText,
+                onRunText = { text -> settings.setRunText(text.filter { it.isDigit() || it == '.' }) },
+                units = settings.units,
+                onUnits = settings::setUnits,
                 onZero = store::zeroHere,
                 onClear = store::clearZero,
             )
