@@ -6,6 +6,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.dp
 import house.level.domain.Tilt
 import house.level.domain.bubbleFraction
@@ -36,12 +40,26 @@ class LevelColors(
 )
 
 /**
+ * The degree readings engraved in the vials. [pitch]/[roll] are the ready
+ * strings (null while the sensor is quiet) — degrees, with the rise as a
+ * second line once a run exists; colors are per-axis so each vial can
+ * whisper in hint or say "level" in ember.
+ */
+class LevelReadouts(
+    val pitch: String?,
+    val roll: String?,
+    val style: TextStyle,
+    val pitchColor: Color,
+    val rollColor: Color,
+)
+
+/**
  * The whole instrument: a horizontal vial along the top, a vertical vial
  * at right angles down the left, and the bullseye in the middle. [tilt]
  * may be null (no sensor yet) — then only the tracks are drawn: an empty,
- * quiet instrument.
+ * quiet instrument. [readouts] are the degrees printed inside the vials.
  */
-fun DrawScope.drawLevel(tilt: Tilt?, colors: LevelColors) {
+fun DrawScope.drawLevel(tilt: Tilt?, colors: LevelColors, readouts: LevelReadouts, textMeasurer: TextMeasurer) {
     val g = LevelGeometry(size)
     drawVialTrack(g.horizontal, colors)
     drawVialTrack(g.vertical, colors)
@@ -55,6 +73,8 @@ fun DrawScope.drawLevel(tilt: Tilt?, colors: LevelColors) {
     drawVialBubble(g.horizontal, fraction = bubbleFraction(tilt.rollDeg), level = rollLevel, colors = colors)
     drawVialBubble(g.vertical, fraction = bubbleFraction(tilt.pitchDeg), level = pitchLevel, colors = colors, vertical = true)
     drawBullseyeBubble(g, bubbleFraction(tilt.rollDeg), bubbleFraction(tilt.pitchDeg), isLevel(tilt), colors)
+    drawVialReading(g.horizontal, tilt.rollDeg, readouts.roll, readouts.rollColor, readouts.style, textMeasurer, vertical = false)
+    drawVialReading(g.vertical, tilt.pitchDeg, readouts.pitch, readouts.pitchColor, readouts.style, textMeasurer, vertical = true)
 }
 
 /** One tube of the spirit level: pill rect with thickness and travel. */
@@ -165,4 +185,35 @@ private fun DrawScope.drawBullseyeBubble(
         y = g.bullseyeCenter.y + (pitchFraction * travel).toFloat(),
     )
     drawCircle(color = color, radius = g.bullseyeRadius * BULLSEYE_TOLERANCE_FRACTION.toFloat() * 0.8f, center = center)
+}
+
+/**
+ * One vial's reading — degrees on the first line, the rise on the second —
+ * printed inside the tube on the far end of the half the bubble has left.
+ * The engraving flips sides to follow the bubble, so the two never collide.
+ * Null text (sensor still quiet) prints nothing.
+ */
+private fun DrawScope.drawVialReading(
+    vial: Vial,
+    tiltDeg: Double,
+    text: String?,
+    color: Color,
+    style: TextStyle,
+    textMeasurer: TextMeasurer,
+    vertical: Boolean,
+) {
+    if (text == null) return
+    val layout: TextLayoutResult = textMeasurer.measure(text, style, maxLines = 2)
+    val endInset = vial.thickness * 0.25f
+    if (vertical) {
+        // Positive pitch sinks the bubble toward the bottom; the reading rests up top.
+        val y = if (bubbleFraction(tiltDeg) >= 0) vial.topLeft.y + endInset
+                else vial.topLeft.y + vial.size.height - layout.size.height - endInset
+        drawText(layout, color = color, topLeft = Offset(vial.center.x - layout.size.width / 2f, y))
+    } else {
+        // Positive roll sends the bubble left; the reading rests at the right end.
+        val x = if (bubbleFraction(tiltDeg) >= 0) vial.topLeft.x + vial.size.width - layout.size.width - endInset
+                else vial.topLeft.x + endInset
+        drawText(layout, color = color, topLeft = Offset(x, vial.center.y - layout.size.height / 2f))
+    }
 }

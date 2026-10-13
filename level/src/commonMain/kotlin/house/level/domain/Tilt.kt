@@ -61,11 +61,12 @@ fun bubbleFraction(tiltDeg: Double, fullScaleDeg: Double = 8.0): Double =
     (tiltDeg / fullScaleDeg).coerceIn(-1.0, 1.0)
 
 /**
- * One decimal place, e.g. "2.3". Hand-rolled rather than `"%.1f".format()`,
- * which is JVM-locale-dependent (decimal commas) and would make the common
- * tests platform-fragile. Never prints "-0.0".
+ * One decimal place, e.g. "2.3". Unit-agnostic: callers append their own
+ * "°" or "in". Hand-rolled rather than `"%.1f".format()`, which is
+ * JVM-locale-dependent (decimal commas) and would make the common tests
+ * platform-fragile. Never prints "-0.0".
  */
-fun formatDegrees(v: Double): String {
+fun formatOneDecimal(v: Double): String {
     val rounded = (abs(v) * 10.0).roundToLong() / 10.0
     return (if (v < 0 && rounded > 0.0) "-" else "") + rounded.toString()
 }

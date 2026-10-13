@@ -77,17 +77,17 @@ class TiltTest {
     }
 
     @Test
-    fun `formatDegrees rounds to one decimal`() {
-        assertEquals("0.0", formatDegrees(0.0))
-        assertEquals("2.3", formatDegrees(2.34))
-        assertEquals("13.0", formatDegrees(13.04))
-        assertEquals("2.4", formatDegrees(2.35))
-        assertEquals("-7.1", formatDegrees(-7.14))
+    fun `formatOneDecimal rounds to one decimal`() {
+        assertEquals("0.0", formatOneDecimal(0.0))
+        assertEquals("2.3", formatOneDecimal(2.34))
+        assertEquals("13.0", formatOneDecimal(13.04))
+        assertEquals("2.4", formatOneDecimal(2.35))
+        assertEquals("-7.1", formatOneDecimal(-7.14))
     }
 
     @Test
-    fun `formatDegrees never prints negative zero`() {
-        assertEquals("0.0", formatDegrees(-0.04))
-        assertEquals("-0.1", formatDegrees(-0.06)) // a real negative value keeps its sign
+    fun `formatOneDecimal never prints negative zero`() {
+        assertEquals("0.0", formatOneDecimal(-0.04))
+        assertEquals("-0.1", formatOneDecimal(-0.06)) // a real negative value keeps its sign
     }
 }

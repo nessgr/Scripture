@@ -111,6 +111,9 @@ val LocalExtendedColors = staticCompositionLocalOf {
     )
 }
 
+/** How much large-text mode grows the type — accessibility for tired eyes. */
+private const val LARGE_TEXT_SCALE = 1.4
+
 /**
  * Bundled fonts (composeResources/font) render identically on Android and
  * desktop — no platform-font roulette. Inter speaks for long-form reading
@@ -120,7 +123,7 @@ val LocalExtendedColors = staticCompositionLocalOf {
  * top-level vals.
  */
 @Composable
-private fun readingTypography(): Typography {
+private fun readingTypography(largeText: Boolean): Typography {
     val inter = FontFamily(
         Font(Res.font.inter_regular, FontWeight.Normal),
         Font(Res.font.inter_semibold, FontWeight.SemiBold),
@@ -131,49 +134,53 @@ private fun readingTypography(): Typography {
         Font(Res.font.space_grotesk_medium, FontWeight.Medium),
         Font(Res.font.space_grotesk_semibold, FontWeight.SemiBold),
     )
-    return buildTypography(inter, spaceGrotesk)
+    return buildTypography(inter, spaceGrotesk, if (largeText) LARGE_TEXT_SCALE else 1.0)
 }
 
 /** Material has no reading slot, so map the M3 type scale onto our two
- *  voices: reading and UI. Named aliases live in Tokens.kt. */
-private fun buildTypography(reading: FontFamily, ui: FontFamily): Typography = Typography(
+ *  voices: reading and UI. Named aliases live in Tokens.kt. [scale]
+ *  multiplies every size, keeping the scale's proportions intact. */
+private fun buildTypography(reading: FontFamily, ui: FontFamily, scale: Double): Typography = Typography(
     displayMedium = TextStyle(
         fontFamily = reading, fontWeight = FontWeight.SemiBold,
-        fontSize = 22.sp, lineHeight = 32.sp,
+        fontSize = (22 * scale).sp, lineHeight = (32 * scale).sp,
     ),
     headlineMedium = TextStyle(
         // The drop cap: two body lines tall, so the first letter of a text
         // opens like an illuminated manuscript.
         fontFamily = reading, fontWeight = FontWeight.SemiBold,
-        fontSize = 42.sp, lineHeight = 42.sp,
+        fontSize = (42 * scale).sp, lineHeight = (42 * scale).sp,
     ),
     bodyLarge = TextStyle(
         fontFamily = reading, fontWeight = FontWeight.Normal,
-        fontSize = 18.sp, lineHeight = 30.sp,
+        fontSize = (18 * scale).sp, lineHeight = (30 * scale).sp,
     ),
     labelLarge = TextStyle(
         fontFamily = ui, fontWeight = FontWeight.SemiBold,
-        fontSize = 13.sp, lineHeight = 18.sp, letterSpacing = 1.sp,
+        fontSize = (13 * scale).sp, lineHeight = (18 * scale).sp, letterSpacing = (1 * scale).sp,
     ),
     titleLarge = TextStyle(
         fontFamily = ui, fontWeight = FontWeight.SemiBold,
-        fontSize = 17.sp, lineHeight = 24.sp,
+        fontSize = (17 * scale).sp, lineHeight = (24 * scale).sp,
     ),
     bodyMedium = TextStyle(
         fontFamily = ui, fontWeight = FontWeight.Normal,
-        fontSize = 15.sp, lineHeight = 22.sp,
+        fontSize = (15 * scale).sp, lineHeight = (22 * scale).sp,
     ),
     labelMedium = TextStyle(
         fontFamily = ui, fontWeight = FontWeight.Medium,
-        fontSize = 12.sp, lineHeight = 16.sp,
+        fontSize = (12 * scale).sp, lineHeight = (16 * scale).sp,
     ),
 )
 
 /** Root of every screen: wrap your composable in this and get the full look.
- *  [choice] decides which palette is used — SYSTEM follows the platform. */
+ *  [choice] decides which palette is used — SYSTEM follows the platform.
+ *  [largeText] grows the whole type scale 1.4×, the house's accessibility
+ *  mode for low vision; it defaults off so existing apps are untouched. */
 @Composable
 fun HouseTheme(
     choice: ThemeChoice = ThemeChoice.SYSTEM,
+    largeText: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val darkTheme = when (choice) {
@@ -198,7 +205,7 @@ fun HouseTheme(
         } else {
             scheme(palette)
         },
-        typography = readingTypography(),
+        typography = readingTypography(largeText),
     ) {
         CompositionLocalProvider(
             LocalExtendedColors provides ExtendedColors(
