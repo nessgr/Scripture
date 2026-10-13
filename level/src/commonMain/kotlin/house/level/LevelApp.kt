@@ -1,4 +1,4 @@
-package house.gallery
+package house.level
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -28,17 +28,17 @@ import house.design.hintColor
 import house.design.title
 
 /**
- * The Gallery: a one-screen showcase of the house design kit. The theme
+ * The Level: a one-screen showcase of the house design kit. The theme
  * toggle is real (though not persisted yet — no store in the shell), and
  * every visible element comes from the kit. This screen is the proving
  * ground for the shared style, and the seed the real app will grow from.
  */
 @Composable
-fun GalleryApp() {
+fun LevelApp() {
     var choice by remember { mutableStateOf(ThemeChoice.SYSTEM) }
     HouseTheme(choice = choice) {
         ScreenScaffold(
-            title = "Gallery",
+            title = "Level",
             scrollable = true,
             trailing = { ThemeToggle(choice = choice, onChoice = { choice = it }) },
         ) {

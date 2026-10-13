@@ -6,13 +6,13 @@ plugins {
 }
 
 dependencies {
-    implementation(projects.gallery)
+    implementation(projects.level)
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutines.swing)
 }
 
 compose.desktop {
     application {
-        mainClass = "house.gallery.desktop.MainKt"
+        mainClass = "house.level.desktop.MainKt"
     }
 }

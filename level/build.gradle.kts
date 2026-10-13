@@ -14,7 +14,7 @@ group = "house"
 
 kotlin {
     android {
-        namespace = "house.gallery.shared" // distinct from the :galleryAndroid app module
+        namespace = "house.level.shared" // distinct from the :levelAndroid app module
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 

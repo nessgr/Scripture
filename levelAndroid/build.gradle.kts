@@ -17,11 +17,11 @@ kotlin {
 }
 
 android {
-    namespace = "house.gallery"
+    namespace = "house.level"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "house.gallery"
+        applicationId = "house.level"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
@@ -30,6 +30,6 @@ android {
 }
 
 dependencies {
-    implementation(projects.gallery)
+    implementation(projects.level)
     implementation(libs.androidx.activity.compose)
 }
