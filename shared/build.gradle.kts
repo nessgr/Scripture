@@ -36,7 +36,9 @@ kotlin {
             implementation(compose.foundation)
             implementation(compose.material3)
             implementation(compose.ui)
-            implementation(compose.components.resources)
+            // api, not implementation: screens expose house.design.ThemeChoice
+            // in public signatures, so the kit is part of this module's ABI.
+            api(projects.designkit)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.coroutines.core) // StateFlow, CoroutineScope

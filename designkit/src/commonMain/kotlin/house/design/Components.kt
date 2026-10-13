@@ -1,4 +1,4 @@
-package app.scripture.ui.designsystem
+package house.design
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -43,34 +42,15 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
-import app.scripture.ThemeChoice
-import app.scripture.domain.Verse
 
 /*
- * The reusable components every screen is built from. All colors, fonts,
- * and spacing come from Theme.kt / Tokens.kt — nothing is hardcoded here.
+ * The reusable components every house screen is built from. All colors,
+ * fonts, and spacing come from Theme.kt / Tokens.kt — nothing is hardcoded
+ * here, and nothing here knows any app's domain.
  */
-
-/** Grade button label, e.g. Grade.GOOD → "Good". */
-val gradeLabel = mapOf(
-    app.scripture.domain.Grade.AGAIN to "Again",
-    app.scripture.domain.Grade.HARD to "Hard",
-    app.scripture.domain.Grade.GOOD to "Good",
-    app.scripture.domain.Grade.EASY to "Easy",
-)
-
-/** Drill choice label, e.g. ReviewMode.FIRST_LETTERS → "First letters". */
-val drillLabel = mapOf(
-    app.scripture.domain.ReviewMode.FLASHCARD to "Flashcard",
-    app.scripture.domain.ReviewMode.FILL_IN_BLANK to "Fill in the blank",
-    app.scripture.domain.ReviewMode.FIRST_LETTERS to "First letters",
-    app.scripture.domain.ReviewMode.REVERSE to "Reverse — name the reference",
-    app.scripture.domain.ReviewMode.TYPE_WHOLE to "Type the whole verse",
-)
 
 /**
  * Standard screen frame: title, optional back, airy padding, and content
@@ -78,7 +58,7 @@ val drillLabel = mapOf(
  * Pass [scrollable] for tall screens whose content must not be clipped —
  * leave it false when the content holds a LazyColumn, which needs bounded
  * height to scroll itself. [trailing] lands at the end of the title row —
- * where the library's theme switch lives.
+ * where a screen's extra control (e.g. a theme switch) lives.
  */
 @Composable
 fun ScreenScaffold(
@@ -136,7 +116,7 @@ private val ForeEdgeInset = 3.dp
 private val ForeEdgeStroke = 2.dp
 
 /**
- * The app's fore-edge: a thin solid rule around the inside of the window,
+ * The house's fore-edge: a thin solid rule around the inside of the window,
  * like the ruled border of an old title page — the signature that marks every
  * screen as one of ours. Drawn in code (no image assets) from theme colors,
  * so it follows light and dark. Inset by the system bars — not the keyboard's
@@ -199,7 +179,7 @@ val themeToggleLabel = mapOf(
  * The three-way light switch, as a compact segmented control: a pill track
  * in surfaceVariant, the chosen segment filled with accent. Text, not
  * sun/moon glyphs — glyphs render differently on every platform, and the
- * app's voice is type.
+ * house's voice is type.
  */
 @Composable
 fun ThemeToggle(
@@ -232,9 +212,9 @@ fun ThemeToggle(
 }
 
 /**
- * Verse text with an illuminated drop cap: the first letter oversized in
- * Lora and accent-colored, the rest in the scripture voice. Surrogate
- * pairs are kept whole so an emoji first character can't be split.
+ * Long-form text with an illuminated drop cap: the first letter oversized in
+ * the reading voice and accent-colored, the rest in the reading voice.
+ * Surrogate pairs are kept whole so an emoji first character can't be split.
  */
 @Composable
 fun DropCapText(
@@ -251,17 +231,17 @@ fun DropCapText(
             withStyle(capSpan) { append(text.substring(0, capEnd)) }
             append(text.substring(capEnd))
         },
-        style = MaterialTheme.scriptureBody,
-        color = MaterialTheme.scriptureColor,
+        style = MaterialTheme.readingBody,
+        color = MaterialTheme.inkColor,
         modifier = modifier,
     )
 }
 
 /**
- * Small pill for a verse tag. Doubles as the library's tag-filter control:
- * pass [onClick] to make it tappable, [selected] for the filled "filtering by
- * this tag" look. Hand-styled to keep the pill shape — Material3's FilterChip
- * would clash with the rest of the design.
+ * Small pill for a short label. Doubles as a filter control: pass [onClick]
+ * to make it tappable, [selected] for the filled "filtering by this" look.
+ * Hand-styled to keep the pill shape — Material3's FilterChip would clash
+ * with the rest of the design.
  */
 @Composable
 fun TagChip(
@@ -316,101 +296,6 @@ fun ChoiceRow(
     }
 }
 
-/**
- * A verse in the library list: reference, serif preview, tags. Give it an
- * [onClick] to make the whole card open the verse detail screen — the
- * clickable Card overload is the same one ClickableCard uses, so ripple
- * and semantics stay consistent across the app.
- */
-@Composable
-fun VerseCard(
-    verse: Verse,
-    onClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
-) {
-    val content: @Composable ColumnScope.() -> Unit = {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            modifier = Modifier.padding(Spacing.lg),
-        ) {
-            Text(
-                verse.reference.uppercase(),
-                style = MaterialTheme.reference,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                verse.text,
-                style = MaterialTheme.scriptureBody,
-                color = MaterialTheme.scriptureColor,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (verse.tags.isNotEmpty()) {
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    verse.tags.take(4).forEach { TagChip(it) }
-                }
-            }
-        }
-    }
-    if (onClick != null) {
-        Card(
-            onClick = onClick,
-            shape = archShape,
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            modifier = modifier.fillMaxWidth(),
-            content = content,
-        )
-    } else {
-        Card(
-            shape = archShape,
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            modifier = modifier.fillMaxWidth(),
-            content = content,
-        )
-    }
-}
-
-/**
- * The four SRS grade buttons with a preview of the interval each choice
- * produces ("Good · 6d"), so the user understands what they're choosing.
- * [suggested] is the grade the drill's measured accuracy points to — it
- * gets the accent border, and stays a one-tap confirmation, not an
- * autopilot: honest self-assessment can always overrule the machine.
- */
-@Composable
-fun GradeBar(
-    preview: (app.scripture.domain.Grade) -> String,
-    onGrade: (app.scripture.domain.Grade) -> Unit,
-    suggested: app.scripture.domain.Grade? = null,
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        app.scripture.domain.Grade.entries.forEach { grade ->
-            OutlinedButton(
-                onClick = { onGrade(grade) },
-                shape = MaterialTheme.shapes.medium,
-                border = if (grade == suggested) {
-                    BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-                } else {
-                    null // the default outlined border
-                },
-                modifier = Modifier.weight(1f).heightIn(min = 56.dp),
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(gradeLabel.getValue(grade), style = MaterialTheme.body)
-                    Text(
-                        preview(grade),
-                        style = MaterialTheme.label,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-        }
-    }
-}
-
 /** Calm message when there is nothing to show. */
 @Composable
 fun EmptyState(message: String, hint: String? = null) {
@@ -431,7 +316,7 @@ fun EmptyState(message: String, hint: String? = null) {
     }
 }
 
-/** Click-anywhere wrapper used by the flashcard reveal. */
+/** Click-anywhere card in the house arch shape. */
 @Composable
 fun ClickableCard(
     onClick: () -> Unit,

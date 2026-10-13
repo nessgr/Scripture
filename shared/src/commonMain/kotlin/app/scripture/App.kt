@@ -15,7 +15,6 @@ import androidx.compose.runtime.setValue
 import app.scripture.data.VerseRepository
 import app.scripture.data.defaultDataStorage
 import app.scripture.domain.ReviewMode
-import app.scripture.ui.designsystem.ScriptureTheme
 import app.scripture.ui.screens.AboutScreen
 import app.scripture.ui.screens.AddVerseScreen
 import app.scripture.ui.screens.EditVerseScreen
@@ -24,6 +23,7 @@ import app.scripture.ui.screens.LibraryScreen
 import app.scripture.ui.screens.PracticeScreen
 import app.scripture.ui.screens.ReviewScreen
 import app.scripture.ui.screens.VerseDetailScreen
+import house.design.HouseTheme
 
 /**
  * Navigation: hand-rolled. A sealed class means the compiler proves the
@@ -54,7 +54,7 @@ fun App() {
 
     LaunchedEffect(store) { store.load() }
 
-    ScriptureTheme(choice = themeChoice) {
+    HouseTheme(choice = themeChoice) {
         // The app's one motion signature: a short crossfade. Alpha-only —
         // cheap on every platform, calm by design. AnimatedContent hands
         // the current target to the lambda as a plain val, so the

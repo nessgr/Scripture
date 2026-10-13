@@ -1,4 +1,4 @@
-package app.scripture.ui.designsystem
+package house.design
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.dp
 
 /*
  * Named tokens — the vocabulary screens are allowed to use.
- * `MaterialTheme.scriptureBody` reads nicer than remembering that our serif
+ * `MaterialTheme.readingBody` reads nicer than remembering that our reading
  * 18sp lives in `typography.bodyLarge`. The getters are @Composable because
  * they read the theme, like MaterialTheme.typography itself does.
  */
@@ -25,48 +25,48 @@ object Spacing {
     val xxl: Dp = 32.dp
 }
 
-/** Serif, 22sp — the big "memorize this" verse display. */
-val MaterialTheme.scriptureDisplay: TextStyle
+/** Reading voice, 22sp — the big display style for long-form openings. */
+val MaterialTheme.readingDisplay: TextStyle
     @Composable get() = typography.displayMedium
 
-/** Serif, 18sp — regular scripture reading text. */
-val MaterialTheme.scriptureBody: TextStyle
+/** Reading voice, 18sp — regular long-form reading text. */
+val MaterialTheme.readingBody: TextStyle
     @Composable get() = typography.bodyLarge
 
-/** Sans, 13sp letterspaced reference label, e.g. "JOHN 3:16". */
+/** UI voice, 13sp letterspaced label, e.g. "JOHN 3:16". */
 val MaterialTheme.reference: TextStyle
     @Composable get() = typography.labelLarge
 
-/** Sans, 17sp — screen titles. */
+/** UI voice, 17sp — screen titles. */
 val MaterialTheme.title: TextStyle
     @Composable get() = typography.titleLarge
 
-/** Sans, 15sp — ordinary UI body text. */
+/** UI voice, 15sp — ordinary UI body text. */
 val MaterialTheme.body: TextStyle
     @Composable get() = typography.bodyMedium
 
-/** Sans, 12sp — small labels, badges, hints. */
+/** UI voice, 12sp — small labels, badges, hints. */
 val MaterialTheme.label: TextStyle
     @Composable get() = typography.labelMedium
 
-/** Serif, 42sp — the drop cap (see DropCapText). */
+/** Reading voice, 42sp — the drop cap (see DropCapText). */
 val MaterialTheme.dropCap: TextStyle
     @Composable get() = typography.headlineMedium
 
-/** The custom scripture text color (see Theme.kt). */
-val MaterialTheme.scriptureColor: Color
-    @Composable get() = LocalExtendedColors.current.scripture
+/** Deep "printed ink" color for long-form reading text (see Theme.kt). */
+val MaterialTheme.inkColor: Color
+    @Composable get() = LocalExtendedColors.current.reading
 
 /** Quiet-but-readable color for hints and metadata (see Theme.kt). */
 val MaterialTheme.hintColor: Color
     @Composable get() = LocalExtendedColors.current.hint
 
-/** Ochre for near-miss words in a typed diff — right word, rough edges. */
-val MaterialTheme.nearMissColor: Color
-    @Composable get() = LocalExtendedColors.current.nearMiss
+/** Warm ochre emphasis — right word, rough edges; "so close". */
+val MaterialTheme.emberColor: Color
+    @Composable get() = LocalExtendedColors.current.ember
 
 /**
- * The app's signature silhouette: an arch — tall radius overhead, quiet
+ * The house's signature silhouette: an arch — tall radius overhead, quiet
  * footing below, like a window in an illuminated manuscript. Cards wear
  * it; buttons don't, so tappable affordances stay conventional.
  */

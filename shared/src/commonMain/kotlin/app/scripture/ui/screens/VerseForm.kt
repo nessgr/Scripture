@@ -13,7 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
-import app.scripture.ui.designsystem.Spacing
+import house.design.Spacing
 
 /**
  * Field state for adding or editing a verse, pre-fillable from an existing

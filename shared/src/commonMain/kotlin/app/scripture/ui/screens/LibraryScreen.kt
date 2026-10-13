@@ -24,20 +24,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import app.scripture.ScriptureStore
-import app.scripture.ThemeChoice
+import house.design.ThemeChoice
 import app.scripture.domain.LibraryFilter
 import app.scripture.domain.Verse
 import app.scripture.domain.allTags
 import app.scripture.domain.filterVerses
 import app.scripture.domain.isDue
-import app.scripture.ui.designsystem.EmptyState
-import app.scripture.ui.designsystem.PrimaryButton
-import app.scripture.ui.designsystem.ScreenScaffold
-import app.scripture.ui.designsystem.Spacing
-import app.scripture.ui.designsystem.TagChip
-import app.scripture.ui.designsystem.ThemeToggle
-import app.scripture.ui.designsystem.VerseCard
-import app.scripture.ui.designsystem.reference
+import house.design.EmptyState
+import house.design.PrimaryButton
+import house.design.ScreenScaffold
+import house.design.Spacing
+import house.design.TagChip
+import house.design.ThemeToggle
+import app.scripture.ui.components.VerseCard
+import house.design.reference
 
 /** Home: the verse library, searchable and tag-filterable, plus review entry. */
 @Composable

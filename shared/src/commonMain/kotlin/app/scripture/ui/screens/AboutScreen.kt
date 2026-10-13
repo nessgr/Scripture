@@ -14,15 +14,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
-import app.scripture.ui.designsystem.PrimaryButton
-import app.scripture.ui.designsystem.ScreenScaffold
-import app.scripture.ui.designsystem.Spacing
-import app.scripture.ui.designsystem.body
-import app.scripture.ui.designsystem.hintColor
-import app.scripture.ui.designsystem.label
-import app.scripture.ui.designsystem.scriptureColor
-import app.scripture.ui.designsystem.scriptureDisplay
-import app.scripture.ui.designsystem.title
+import house.design.PrimaryButton
+import house.design.ScreenScaffold
+import house.design.Spacing
+import house.design.body
+import house.design.hintColor
+import house.design.label
+import house.design.inkColor
+import house.design.readingDisplay
+import house.design.title
 
 /**
  * The About page: what this app is, the promise it makes (free, safe,
@@ -52,7 +52,7 @@ fun AboutScreen(onBack: () -> Unit) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
             Text(
                 "Scripture",
-                style = MaterialTheme.scriptureDisplay,
+                style = MaterialTheme.readingDisplay,
                 color = MaterialTheme.colorScheme.primary,
             )
             Text(
@@ -62,7 +62,7 @@ fun AboutScreen(onBack: () -> Unit) {
                     "type the whole thing from memory, scheduled by spaced " +
                     "repetition.",
                 style = MaterialTheme.body,
-                color = MaterialTheme.scriptureColor,
+                color = MaterialTheme.inkColor,
             )
 
             Text("Free and safe", style = MaterialTheme.title)

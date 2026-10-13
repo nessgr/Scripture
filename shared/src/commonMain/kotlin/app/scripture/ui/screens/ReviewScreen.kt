@@ -39,20 +39,20 @@ import app.scripture.domain.firstLetters
 import app.scripture.domain.makeFillInBlank
 import app.scripture.domain.nextProgress
 import app.scripture.domain.suggestGrade
-import app.scripture.ui.designsystem.ClickableCard
-import app.scripture.ui.designsystem.EmptyState
-import app.scripture.ui.designsystem.GradeBar
-import app.scripture.ui.designsystem.PrimaryButton
-import app.scripture.ui.designsystem.ScreenScaffold
-import app.scripture.ui.designsystem.Spacing
-import app.scripture.ui.designsystem.body
-import app.scripture.ui.designsystem.gradeLabel
-import app.scripture.ui.designsystem.hintColor
-import app.scripture.ui.designsystem.label
-import app.scripture.ui.designsystem.nearMissColor
-import app.scripture.ui.designsystem.scriptureBody
-import app.scripture.ui.designsystem.scriptureColor
-import app.scripture.ui.designsystem.scriptureDisplay
+import house.design.ClickableCard
+import house.design.EmptyState
+import app.scripture.ui.components.GradeBar
+import house.design.PrimaryButton
+import house.design.ScreenScaffold
+import house.design.Spacing
+import house.design.body
+import app.scripture.ui.components.gradeLabel
+import house.design.hintColor
+import house.design.label
+import house.design.emberColor
+import house.design.readingBody
+import house.design.inkColor
+import house.design.readingDisplay
 
 /**
  * A review session: each verse drills at its rung on the mastery ladder
@@ -182,7 +182,7 @@ internal fun RecallReview(
         ClickableCard(onClick = { revealed = true }) {
             Text(
                 text = verse.reference.uppercase(),
-                style = MaterialTheme.scriptureDisplay,
+                style = MaterialTheme.readingDisplay,
                 color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
@@ -190,8 +190,8 @@ internal fun RecallReview(
             Spacer(Modifier.height(Spacing.md))
             Text(
                 text = if (revealed) verse.text else "Tap to reveal",
-                style = MaterialTheme.scriptureBody,
-                color = if (revealed) MaterialTheme.scriptureColor else MaterialTheme.hintColor,
+                style = MaterialTheme.readingBody,
+                color = if (revealed) MaterialTheme.inkColor else MaterialTheme.hintColor,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -237,8 +237,8 @@ internal fun ReverseReview(
         ClickableCard(onClick = { revealed = true }) {
             Text(
                 text = verse.text,
-                style = MaterialTheme.scriptureBody,
-                color = MaterialTheme.scriptureColor,
+                style = MaterialTheme.readingBody,
+                color = MaterialTheme.inkColor,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -246,7 +246,7 @@ internal fun ReverseReview(
                 Spacer(Modifier.height(Spacing.md))
                 Text(
                     text = verse.reference.uppercase(),
-                    style = MaterialTheme.scriptureDisplay,
+                    style = MaterialTheme.readingDisplay,
                     color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
@@ -284,7 +284,7 @@ internal fun TypedVerseReview(
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         Text(
             text = verse.reference.uppercase(),
-            style = MaterialTheme.scriptureDisplay,
+            style = MaterialTheme.readingDisplay,
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
@@ -330,7 +330,7 @@ internal fun FirstLettersTypedReview(
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         Text(
             text = verse.reference.uppercase(),
-            style = MaterialTheme.scriptureDisplay,
+            style = MaterialTheme.readingDisplay,
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
@@ -339,7 +339,7 @@ internal fun FirstLettersTypedReview(
         // The cue: initials only, quiet enough to lean on, too sparse to read.
         Text(
             text = firstLetters(verse.text),
-            style = MaterialTheme.scriptureBody,
+            style = MaterialTheme.readingBody,
             color = MaterialTheme.hintColor,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
@@ -387,7 +387,7 @@ internal fun ClozeReview(
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         Text(
             text = verse.reference.uppercase(),
-            style = MaterialTheme.scriptureDisplay,
+            style = MaterialTheme.readingDisplay,
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
@@ -398,8 +398,8 @@ internal fun ClozeReview(
             text = puzzle.tokens.mapIndexed { i, token ->
                 if (i in blanks) "_".repeat(token.length) else token
             }.joinToString(" "),
-            style = MaterialTheme.scriptureBody,
-            color = MaterialTheme.scriptureColor,
+            style = MaterialTheme.readingBody,
+            color = MaterialTheme.inkColor,
         )
 
         if (!checked) {
@@ -437,8 +437,8 @@ internal fun ClozeReview(
 /** The expected verse, each word colored by what the typist did with it. */
 @Composable
 internal fun TypedDiff(tokens: List<String>, statuses: List<WordStatus>) {
-    val ink = MaterialTheme.scriptureColor
-    val amber = MaterialTheme.nearMissColor
+    val ink = MaterialTheme.inkColor
+    val amber = MaterialTheme.emberColor
     val miss = MaterialTheme.colorScheme.error
     Text(
         text = buildAnnotatedString {
@@ -453,7 +453,7 @@ internal fun TypedDiff(tokens: List<String>, statuses: List<WordStatus>) {
                 }
             }
         },
-        style = MaterialTheme.scriptureBody,
+        style = MaterialTheme.readingBody,
     )
 }
 

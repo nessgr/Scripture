@@ -21,13 +21,13 @@ import androidx.compose.ui.text.font.FontFamily
 import app.scripture.ScriptureStore
 import app.scripture.domain.ImportMode
 import app.scripture.domain.ImportOutcome
-import app.scripture.ui.designsystem.PrimaryButton
-import app.scripture.ui.designsystem.ScreenScaffold
-import app.scripture.ui.designsystem.Spacing
-import app.scripture.ui.designsystem.body
-import app.scripture.ui.designsystem.hintColor
-import app.scripture.ui.designsystem.label
-import app.scripture.ui.designsystem.title
+import house.design.PrimaryButton
+import house.design.ScreenScaffold
+import house.design.Spacing
+import house.design.body
+import house.design.hintColor
+import house.design.label
+import house.design.title
 import kotlinx.coroutines.launch
 
 /**

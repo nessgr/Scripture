@@ -9,10 +9,10 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import app.scripture.ScriptureStore
-import app.scripture.ui.designsystem.EmptyState
-import app.scripture.ui.designsystem.PrimaryButton
-import app.scripture.ui.designsystem.ScreenScaffold
-import app.scripture.ui.designsystem.Spacing
+import house.design.EmptyState
+import house.design.PrimaryButton
+import house.design.ScreenScaffold
+import house.design.Spacing
 
 /**
  * Edit form for one verse. Only content changes — id, creation date, and

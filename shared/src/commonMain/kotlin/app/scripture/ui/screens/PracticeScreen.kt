@@ -23,12 +23,12 @@ import app.scripture.domain.Verse
 import app.scripture.domain.clozeFraction
 import app.scripture.domain.makeFillInBlank
 import app.scripture.domain.reviewModeFor
-import app.scripture.ui.designsystem.ChoiceRow
-import app.scripture.ui.designsystem.EmptyState
-import app.scripture.ui.designsystem.PrimaryButton
-import app.scripture.ui.designsystem.ScreenScaffold
-import app.scripture.ui.designsystem.Spacing
-import app.scripture.ui.designsystem.drillLabel
+import house.design.ChoiceRow
+import house.design.EmptyState
+import house.design.PrimaryButton
+import house.design.ScreenScaffold
+import house.design.Spacing
+import app.scripture.ui.components.drillLabel
 
 /**
  * One verse, one drill, on demand — chosen from the verse's detail screen.

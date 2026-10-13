@@ -6,9 +6,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import app.scripture.ScriptureStore
-import app.scripture.ui.designsystem.PrimaryButton
-import app.scripture.ui.designsystem.ScreenScaffold
-import app.scripture.ui.designsystem.Spacing
+import house.design.PrimaryButton
+import house.design.ScreenScaffold
+import house.design.Spacing
 
 /** Form for adding one verse. Everything is optional except reference + text. */
 @Composable

@@ -37,5 +37,9 @@ rootProject.name = "Scripture"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 include(":shared")
+include(":designkit")
+include(":gallery")
+include(":galleryAndroid")
+include(":galleryDesktop")
 include(":androidApp")
 include(":desktopApp")

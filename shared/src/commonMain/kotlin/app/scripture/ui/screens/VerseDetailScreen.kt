@@ -21,15 +21,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import app.scripture.ScriptureStore
 import app.scripture.domain.ReviewMode
-import app.scripture.ui.designsystem.DropCapText
-import app.scripture.ui.designsystem.EmptyState
-import app.scripture.ui.designsystem.PrimaryButton
-import app.scripture.ui.designsystem.ScreenScaffold
-import app.scripture.ui.designsystem.Spacing
-import app.scripture.ui.designsystem.TagChip
-import app.scripture.ui.designsystem.hintColor
-import app.scripture.ui.designsystem.label
-import app.scripture.ui.designsystem.reference
+import house.design.DropCapText
+import house.design.EmptyState
+import house.design.PrimaryButton
+import house.design.ScreenScaffold
+import house.design.Spacing
+import house.design.TagChip
+import house.design.hintColor
+import house.design.label
+import house.design.reference
 
 /**
  * One verse, opened from the library: the full text (the list card truncates

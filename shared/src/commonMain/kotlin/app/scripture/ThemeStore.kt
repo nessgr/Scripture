@@ -1,15 +1,10 @@
 package app.scripture
 
 import app.scripture.data.DataStorage
+import house.design.ThemeChoice
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-
-/**
- * The one UI preference the app has: follow the system, or force light/dark.
- * SYSTEM keeps both platforms matching whatever the user set globally.
- */
-enum class ThemeChoice { SYSTEM, LIGHT, DARK }
 
 /**
  * Holds and persists [ThemeChoice] as its own named blob — deliberately

@@ -1,4 +1,4 @@
-package app.scripture.ui.designsystem
+package house.design
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
@@ -17,19 +17,18 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.Font
-import app.scripture.ThemeChoice
-import app.scripture.shared.generated.resources.Res
-import app.scripture.shared.generated.resources.inter_italic
-import app.scripture.shared.generated.resources.inter_regular
-import app.scripture.shared.generated.resources.inter_semibold
-import app.scripture.shared.generated.resources.space_grotesk_medium
-import app.scripture.shared.generated.resources.space_grotesk_regular
-import app.scripture.shared.generated.resources.space_grotesk_semibold
+import house.designkit.generated.resources.Res
+import house.designkit.generated.resources.inter_italic
+import house.designkit.generated.resources.inter_regular
+import house.designkit.generated.resources.inter_semibold
+import house.designkit.generated.resources.space_grotesk_medium
+import house.designkit.generated.resources.space_grotesk_regular
+import house.designkit.generated.resources.space_grotesk_semibold
 
 /*
- * DESIGN SYSTEM — the one place the app's look lives.
+ * HOUSE DESIGN SYSTEM — the one place the shared look lives.
  *
- * To restyle the entire app: change colors here, swap font files in
+ * To restyle every house app: change colors here, swap font files in
  * composeResources/font, or adjust Spacing/Type in Tokens.kt. Screens must
  * never hardcode a color, font, or padding value — they only read tokens.
  */
@@ -44,10 +43,10 @@ data class Palette(
     val onSurface: Color,
     val surfaceVariant: Color,
     val outline: Color,
-    /** Deep "printed ink" color for scripture text — extends Material's roles. */
-    val scripture: Color,
-    /** Readable ochre for near-miss words in a typed diff — "so close". */
-    val nearMiss: Color,
+    /** Deep "printed ink" color for long-form reading text — extends Material's roles. */
+    val reading: Color,
+    /** Readable ochre for warm emphasis — right answer, rough edges; "so close". */
+    val ember: Color,
 )
 
 private val LightPalette = Palette(
@@ -59,8 +58,8 @@ private val LightPalette = Palette(
     onSurface = Color(0xFF1C1B18),
     surfaceVariant = Color(0xFFEFEEE8),
     outline = Color(0xFFD8D6CE),
-    scripture = Color(0xFF23221D),
-    nearMiss = Color(0xFF946B2D),
+    reading = Color(0xFF23221D),
+    ember = Color(0xFF946B2D),
 )
 
 private val DarkPalette = Palette(
@@ -72,8 +71,8 @@ private val DarkPalette = Palette(
     onSurface = Color(0xFFE8E6E0),
     surfaceVariant = Color(0xFF242622),
     outline = Color(0xFF4A4D47),      // borders only — still quiet, but OutlinedButtons read
-    scripture = Color(0xFFDCDAD2),
-    nearMiss = Color(0xFFD9B36A),
+    reading = Color(0xFFDCDAD2),
+    ember = Color(0xFFD9B36A),
 )
 
 private fun scheme(p: Palette): ColorScheme = lightColorScheme(
@@ -90,37 +89,38 @@ private fun scheme(p: Palette): ColorScheme = lightColorScheme(
 
 /**
  * The Material roles Material3 does not have: a text color dedicated to
- * scripture, and a readable "quiet" color for hints and metadata. Provided
- * via CompositionLocal — the documented M3 pattern for extending the theme.
+ * long-form reading, and a readable "quiet" color for hints and metadata.
+ * Provided via CompositionLocal — the documented M3 pattern for extending
+ * the theme.
  *
  * [hint] is deliberately NOT `outline`: outline is a border color, far too
  * low-contrast for text (unreadably so on the dark palette). Hints dim by
  * alpha over the readable ink instead.
  */
 data class ExtendedColors(
-    val scripture: Color,
+    val reading: Color,
     val hint: Color,
-    val nearMiss: Color,
+    val ember: Color,
 )
 
 val LocalExtendedColors = staticCompositionLocalOf {
     ExtendedColors(
-        scripture = LightPalette.scripture,
+        reading = LightPalette.reading,
         hint = LightPalette.onBackground.copy(alpha = 0.62f),
-        nearMiss = LightPalette.nearMiss,
+        ember = LightPalette.ember,
     )
 }
 
 /**
  * Bundled fonts (composeResources/font) render identically on Android and
- * desktop — no platform-font roulette. Inter speaks for scripture (clean,
- * modern, screen-perfect); Space Grotesk for UI (a quirky grotesque that
- * gives the chrome its own voice). Loading a resource font is a
+ * desktop — no platform-font roulette. Inter speaks for long-form reading
+ * (clean, modern, screen-perfect); Space Grotesk for UI (a quirky grotesque
+ * that gives the chrome its own voice). Loading a resource font is a
  * @Composable call, so the families are built here rather than as
  * top-level vals.
  */
 @Composable
-private fun scriptureTypography(): Typography {
+private fun readingTypography(): Typography {
     val inter = FontFamily(
         Font(Res.font.inter_regular, FontWeight.Normal),
         Font(Res.font.inter_semibold, FontWeight.SemiBold),
@@ -134,21 +134,21 @@ private fun scriptureTypography(): Typography {
     return buildTypography(inter, spaceGrotesk)
 }
 
-/** Material has no serif slot, so map the M3 type scale onto our two voices:
- *  scripture (serif) and UI (sans). Named aliases live in Tokens.kt. */
-private fun buildTypography(scripture: FontFamily, ui: FontFamily): Typography = Typography(
+/** Material has no reading slot, so map the M3 type scale onto our two
+ *  voices: reading and UI. Named aliases live in Tokens.kt. */
+private fun buildTypography(reading: FontFamily, ui: FontFamily): Typography = Typography(
     displayMedium = TextStyle(
-        fontFamily = scripture, fontWeight = FontWeight.SemiBold,
+        fontFamily = reading, fontWeight = FontWeight.SemiBold,
         fontSize = 22.sp, lineHeight = 32.sp,
     ),
     headlineMedium = TextStyle(
-        // The drop cap: two body lines tall, so the first letter of a verse
+        // The drop cap: two body lines tall, so the first letter of a text
         // opens like an illuminated manuscript.
-        fontFamily = scripture, fontWeight = FontWeight.SemiBold,
+        fontFamily = reading, fontWeight = FontWeight.SemiBold,
         fontSize = 42.sp, lineHeight = 42.sp,
     ),
     bodyLarge = TextStyle(
-        fontFamily = scripture, fontWeight = FontWeight.Normal,
+        fontFamily = reading, fontWeight = FontWeight.Normal,
         fontSize = 18.sp, lineHeight = 30.sp,
     ),
     labelLarge = TextStyle(
@@ -172,7 +172,7 @@ private fun buildTypography(scripture: FontFamily, ui: FontFamily): Typography =
 /** Root of every screen: wrap your composable in this and get the full look.
  *  [choice] decides which palette is used — SYSTEM follows the platform. */
 @Composable
-fun ScriptureTheme(
+fun HouseTheme(
     choice: ThemeChoice = ThemeChoice.SYSTEM,
     content: @Composable () -> Unit,
 ) {
@@ -198,19 +198,19 @@ fun ScriptureTheme(
         } else {
             scheme(palette)
         },
-        typography = scriptureTypography(),
+        typography = readingTypography(),
     ) {
         CompositionLocalProvider(
             LocalExtendedColors provides ExtendedColors(
-                scripture = palette.scripture,
+                reading = palette.reading,
                 hint = palette.onBackground.copy(alpha = 0.62f),
-                nearMiss = palette.nearMiss,
+                ember = palette.ember,
             ),
             // Text with no explicit color falls back to LocalContentColor, whose
             // Material3 default is BLACK — unreadable on the dark palette. A root
             // Surface would provide this; our scaffold paints its own background
             // instead, so the theme must set it. This is what keeps uncolored
-            // Text (titles, drill labels, empty states) readable in dark mode.
+            // Text (titles, labels, empty states) readable in dark mode.
             LocalContentColor provides palette.onBackground,
         ) {
             content()
